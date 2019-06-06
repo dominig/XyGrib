@@ -70,7 +70,9 @@ class DataPointInfo
         void getWindVxVy   (const Altitude &alt, float *vx, float*vy) const;
         void getCurrentCxCy   (const Altitude &alt, float *vx, float*vy) const;
 		
-        bool  getWaveValues (int prvtype, float*ht, float*per, float*dir) const;
+        bool getWaveValues (int prvtype, float*ht, float*per, float*dir) const;
+        void getWaveWxWy   (int prvtype, float *wx, float*wy) const;
+
 		bool  hasWaveData (int type) const;
 		float getWaveData (int type) const;
 		
@@ -137,10 +139,12 @@ class DataPointInfo
         float   wave_max_ht;
         float   wave_swl_ht;
         float   wave_wnd_ht;
+        float   wave_per;
         float   wave_swl_per;
         float   wave_wnd_per;
         float   wave_pr_per;
         float   wave_scdy_per;
+        float   wave_dir;
         float   wave_swl_dir;
         float   wave_wnd_dir;
         float   wave_pr_dir;

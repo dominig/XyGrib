@@ -27,7 +27,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <set>
 #include <map>
 
-#include <QApplication>
 #include <QPainter>
 
 #include "DataMeteoAbstract.h"
@@ -102,6 +101,8 @@ class GriddedPlotter :
 							{mustDuplicateMissingWaveRecords = b;}
 		virtual void setUseJetStreamColorMap (bool b)
 							{useJetStreamColorMap = b;}
+		virtual void setUseGustColorAbsolute (bool b);
+
         virtual Altitude getWindAltitude () 
 							{return windAltitude;}
 		
@@ -235,6 +236,7 @@ class GriddedPlotter :
 		bool    mustDuplicateMissingWaveRecords;
 		bool    thinWindArrows;
 		bool 	useJetStreamColorMap;
+		bool    useGustColorAbsolute;
 
 		Altitude windAltitude;		  // current wind altitude
 		Altitude currentAltitude;	  // current altitude
@@ -266,6 +268,11 @@ class GriddedPlotter :
 		void  drawColorMapGeneric_Abs_Delta_Data (
 				QPainter &pnt, const Projection *proj, bool smooth,
 				DataCode dtc1, DataCode dtc2, 
+				QRgb (DataColors::*function_getColor) (double v, bool smooth)
+			);
+		void  drawColorMapGeneric_Abs_Delta_2D (
+				QPainter &pnt, const Projection *proj, bool smooth,
+				DataCode dtcX, DataCode dtcY, DataCode dtc2,
 				QRgb (DataColors::*function_getColor) (double v, bool smooth)
 			);
 		

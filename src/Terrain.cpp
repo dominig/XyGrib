@@ -379,6 +379,8 @@ void Terrain::setColorMapData (const DataCode &dtc)
         if (griddedPlot!=nullptr && griddedPlot->isReaderOk()) {
 			griddedPlot->setUseJetStreamColorMap (
 						Util::getSetting("useJetStreamColorMap", false).toBool());
+			griddedPlot->setUseGustColorAbsolute (
+						Util::getSetting("useAbsoluteGustSpeed", false).toBool());
 		}
         mustRedraw = true;
         update();
@@ -659,7 +661,7 @@ FileDataType Terrain::loadMeteoDataFile (const QString& fileName, bool zoom)
 		delete griddedPlot;
         griddedPlot = nullptr;
 	}
-	taskProgress->setMessage (LTASK_OPEN_FILE);
+	taskProgress->setMessage (LongTaskMessage::LTASK_OPEN_FILE);
 	taskProgress->setValue (0);
     //--------------------------------------------------------
     // Ouverture du fichier
@@ -674,7 +676,9 @@ FileDataType Terrain::loadMeteoDataFile (const QString& fileName, bool zoom)
             taskProgress = nullptr;
 	        return DATATYPE_NONE;
 		}
-		nbrecs = GribReader::countGribRecords (file, taskProgress);
+		GribReader r;
+	    QObject::connect(taskProgress, &LongTaskProgress::canceled, &r, &LongTaskMessage::cancel);
+		nbrecs = r.countGribRecords (file);
 		zu_close(file);
 	}
 
@@ -729,6 +733,9 @@ FileDataType Terrain::loadMeteoDataFile (const QString& fileName, bool zoom)
 				griddedPlot_Temp->setCurrentDateClosestFromNow ();
 				griddedPlot_Temp->setUseJetStreamColorMap (
 								Util::getSetting("useJetStreamColorMap", false).toBool());
+				griddedPlot_Temp->setUseGustColorAbsolute (
+								Util::getSetting("useAbsoluteGustSpeed", false).toBool());
+
 				break;
 			default :
 				break;
@@ -826,7 +833,12 @@ void  Terrain::showSpecialZone (bool b)
 //---------------------------------------------------------
 void Terrain::zoomOnZone (double x0, double y0, double x1, double y1)
 {
+	DBG("zoom on x0 %f x1 %f\n", x0, x1);
 	double mh, mv;
+	if (x0 > x1) {
+		x0 -= 360.;
+		DBG("NEW zoom on x0 %f x1 %f\n", x0, x1);
+	}
 	mh = fabs(x0-x1)*0.05;
 	mv = fabs(y0-y1)*0.05;
 	proj->setVisibleArea (x0-mh,y0-mv, x1+mh,y1+mv);

@@ -67,7 +67,6 @@ QWidget * MeteoTableWidget::getDataHeaders ()
 //------------------------------------------------------------------------
 void MeteoTableWidget::showEvent (QShowEvent */*event*/)
 {
-	QRect r;
 	// Adjust header height to row height
 	for (int j=0; j<layout->rowCount(); j++) 
 	{
@@ -119,38 +118,35 @@ void MeteoTableWidget::createTable()
 	if (!reader)
 		return;
 	
-	std::set<time_t> sdates = reader->getListDates();
-	std::set<time_t>::iterator iter;
-	std::set<time_t>::iterator iter2;
 	int lig, col, colspan;
 	QString dstr;
 	bool showSunMoonAlmanac = Util::getSetting("MTABLE_showSunMoonAlmanac", true).toBool();
 	//-----------------------------------------------
 	// Titre 1 : une colonne par jour, regroupant plusieurs horaires
 	//-----------------------------------------------
+	colspan = 0;
 	col = 0;
 	lig = 0;
 	addCell_title_dataline ("", true, lig,col);
 	col ++;
 	QString actuel = "";
-	for (iter=sdates.begin(); iter!=sdates.end(); ++iter)
+	std::set<time_t> sdates = reader->getListDates();
+	for (auto daterecord : sdates)
 	{
-		time_t daterecord = *iter;
 		dstr = Util::formatDateLong (daterecord);
 		if (dstr != actuel)
 		{
-			colspan = 0;
+			if (colspan != 0) {
+				addCell_title (actuel, true, layout, lig,col, 1,colspan);
+				col += colspan;
+				colspan = 0;
+			}
 			actuel = dstr;
-			iter2 = iter;
-			do
-			{
-				colspan ++;
-				++iter2;
-				dstr = Util::formatDateLong(*iter2);
-			} while (actuel==dstr);
-			addCell_title (actuel, true, layout, lig,col, 1,colspan);
-			col += colspan;
 		}
+		colspan++;
+	}
+	if (colspan != 0) {
+		addCell_title (actuel, true, layout, lig,col, 1,colspan);
 	}
 			
 	//-----------------------------------------------
@@ -159,28 +155,29 @@ void MeteoTableWidget::createTable()
 	if (showSunMoonAlmanac)
 	{
 		col = 0;
+		colspan = 0;
 		lig ++;
 		addCell_title_dataline (tr("Sun")+"\n"+tr("Moon"), true, lig,col);
 		col ++;
-		QString actuel = "";
-		for (iter=sdates.begin(); iter!=sdates.end(); ++iter)
+		actuel = "";
+		time_t dt = 0;
+		for (auto daterecord : sdates)
 		{
-			time_t daterecord = *iter;
 			dstr = Util::formatDateLong (daterecord);
 			if (dstr != actuel)
 			{
-				colspan = 0;
+				if (colspan != 0) {
+					addCell_SunMoonAlmanac (dt, lat, lon, layout, lig,col, 1,colspan);
+					col += colspan;
+					colspan = 0;
+				}
 				actuel = dstr;
-				iter2 = iter;
-				do
-				{
-					colspan ++;
-					++iter2;
-					dstr = Util::formatDateLong(*iter2);
-				} while (actuel==dstr);
-				addCell_SunMoonAlmanac (daterecord, lat, lon, layout, lig,col, 1,colspan);
-				col += colspan;
+				dt = daterecord;
 			}
+			colspan++;
+		}
+		if (colspan != 0) {
+			addCell_SunMoonAlmanac (dt, lat, lon, layout, lig,col, 1,colspan);
 		}
 	}	
 	//-----------------------------------------------
@@ -311,7 +308,8 @@ void MeteoTableWidget::createTable()
 		){
 			addLine_WaveHeight (dataType, lig++);
 		}
-		else if (dataType==GRB_PRV_WAV_MAX
+		else if (dataType==GRB_PRV_WAV_SIG
+				|| dataType==GRB_PRV_WAV_MAX
 				|| dataType==GRB_PRV_WAV_WND
 				|| dataType==GRB_PRV_WAV_SWL
 				|| dataType==GRB_PRV_WAV_PRIM
@@ -335,7 +333,6 @@ void MeteoTableWidget::createTable()
 //-----------------------------------------------------------------
 void MeteoTableWidget::addLine_WaveWhitecap (int type, int lig)
 {
-	std::vector <time_t>::iterator it; 
 	std::vector <DataPointInfo *>::iterator iter; 
 	QColor    bgColor = Qt::white;
 	QString   txt;
@@ -370,23 +367,24 @@ void MeteoTableWidget::addLine_WaveCompleteCell (int prvtype, int lig)
 		DataPointInfo * pinfo = *iter;
 		txt = "";
 		float ht, per, dir;
-		pinfo->getWaveValues (prvtype, &ht, &per, &dir);
-		if (GribDataIsDef(ht)) {
-			txt = Util::formatWaveHeight (ht);
-			bgColor = QColor(plotter->getWaveHeightColor (ht, true));
+		bgColor = Qt::white;
+		if (pinfo->getWaveValues (prvtype, &ht, &per, &dir)) {
+			if (GribDataIsDef(ht)) {
+				txt = Util::formatWaveHeight (ht);
+				bgColor = QColor(plotter->getWaveHeightColor (ht, true));
+			}
+			txt += "\n";
+			if (GribDataIsDef(dir)) {
+				txt += Util::formatWaveDirection (dir, true);
+			}
+			txt += "\n";
+			if (GribDataIsDef(per)) {
+				txt += Util::formatWavePeriod (per, true);
+			}
 		}
-		else {
-			bgColor = Qt::white;
-		}
-		txt += "\n";
-		if (GribDataIsDef(dir)) {
-			txt += Util::formatWaveDirection (dir, true);
-		}
-		txt += "\n";
-		if (GribDataIsDef(per)) {
-			txt += Util::formatWavePeriod (per, true);
-		}
-		addCell_content (txt, layout,lig,col, 1,1, bgColor);
+		float wx, wy;
+		pinfo->getWaveWxWy (prvtype, &wx, &wy);
+		addCell_content (txt, layout,lig,col, 1,1, bgColor, MTABLE_WAVE_CELL,wx,wy);
 	}
 }
 //-----------------------------------------------------------------
@@ -535,7 +533,6 @@ void MeteoTableWidget::addLine_Pressure(const Altitude &alt, int lig)
 void MeteoTableWidget::addLine_Wind (const Altitude &alt, int lig)
 {
 	std::vector <DataPointInfo *>::iterator iter; 
-	std::vector <time_t>::iterator it; 
 	QColor    bgColor = Qt::white;
 	QString   txt;
 	int col = 0;
@@ -570,14 +567,13 @@ void MeteoTableWidget::addLine_Wind (const Altitude &alt, int lig)
 void MeteoTableWidget::addLine_Current (const Altitude &alt, int lig)
 {
 	std::vector <DataPointInfo *>::iterator iter; 
-	std::vector <time_t>::iterator it; 
 	QColor    bgColor = Qt::white;
 	QString   txt;
 	int col = 0;
 	addCell_title_dataline (tr("Current")+" ("+AltitudeStr::toStringShort(alt)+")", 
 					layout, lig,col);
 	col ++;
-	for (iter=lspinfos.begin(); iter!=lspinfos.end(); iter++, col++) {
+	for (iter=lspinfos.begin(); iter!=lspinfos.end(); ++iter, col++) {
 		DataPointInfo * pf = *iter;
 		float v, dir;
 		txt = "";
@@ -622,7 +618,6 @@ void MeteoTableWidget::addLine_GUSTsfc(int lig)
 void MeteoTableWidget::addLine_HumidRel (const Altitude &alt, int lig)
 {
 	std::vector <time_t>::iterator it; 
-	std::vector <DataPointInfo *>::iterator iter; 
 	QColor    bgColor = Qt::white;
 	QString   txt;
 	int col = 0;
@@ -705,7 +700,7 @@ void MeteoTableWidget::addLine_DeltaTemperature(const Altitude &alt, uchar type,
 			break;
 	}
 	col ++;
-	for (iter=lspinfos.begin(); iter!=lspinfos.end(); iter++, col++)
+	for (iter=lspinfos.begin(); iter!=lspinfos.end(); ++iter, col++)
 	{
 		DataPointInfo * pinfo = *iter;
 		switch (type) {
@@ -734,7 +729,7 @@ void MeteoTableWidget::addLine_DewPoint(const Altitude &alt, int lig)
 	addCell_title_dataline (tr("Dew point")+" ("+AltitudeStr::toStringShort(alt)+")", 
 				  true, lig,col);
 	col ++;
-	for (iter=lspinfos.begin(); iter!=lspinfos.end(); iter++, col++)
+	for (iter=lspinfos.begin(); iter!=lspinfos.end(); ++iter, col++)
 	{
 		DataPointInfo * pinfo = *iter;
 		txt = "";
@@ -757,14 +752,13 @@ void MeteoTableWidget::addLine_CAPEsfc (int lig)
 	int col = 0;
 	addCell_title_dataline (tr("CAPE (surface)"), true, lig,col);
 	col ++;
-	for (iter=lspinfos.begin(); iter!=lspinfos.end(); iter++, col++)
+	for (iter=lspinfos.begin(); iter!=lspinfos.end(); ++iter, col++)
 	{
 		DataPointInfo * pinfo = *iter;
 		txt = "";
 		if (pinfo->hasCAPEsfc()) {
 			double v = pinfo->CAPEsfc;
-			txt.sprintf("%d ", qRound(v));
-			txt += tr("J/kg");
+			txt = Util::formatCAPEsfc(v);
 			bgColor = QColor(plotter->getCAPEColor(v, true));
 		}
 		else
@@ -781,14 +775,13 @@ void MeteoTableWidget::addLine_CINsfc (int lig)
     int col = 0;
     addCell_title_dataline (tr("CIN (surface)"), true, lig,col);
     col ++;
-    for (iter=lspinfos.begin(); iter!=lspinfos.end(); iter++, col++)
+    for (iter=lspinfos.begin(); iter!=lspinfos.end(); ++iter, col++)
     {
         DataPointInfo * pinfo = *iter;
         txt = "";
         if (pinfo->hasCINsfc()) {
             double v = pinfo->CINsfc;
-            txt.sprintf("%d ", qRound(v));
-            txt += tr("J/kg");
+			txt = Util::formatCAPEsfc(v);
             bgColor = QColor(plotter->getCINColor(v, true));
         }
         else
@@ -805,14 +798,13 @@ void MeteoTableWidget::addLine_Reflectivity (int lig)
     int col = 0;
     addCell_title_dataline (tr("Reflectivity (entire atmos)"), true, lig,col);
     col ++;
-    for (iter=lspinfos.begin(); iter!=lspinfos.end(); iter++, col++)
+    for (iter=lspinfos.begin(); iter!=lspinfos.end(); ++iter, col++)
     {
         DataPointInfo * pinfo = *iter;
         txt = "";
         if (pinfo->hasCompReflect()) {
             double v = pinfo->compReflect;
-            txt.sprintf("%d ", qRound(v));
-            txt += tr("dBZ");
+            txt = Util::formatReflect(v);
             bgColor = QColor(plotter->getReflectColor(v, true));
         }
         else
@@ -829,7 +821,7 @@ void MeteoTableWidget::addLine_Rain(int lig)
 	int col = 0;
 	addCell_title_dataline (tr("Precipitation"), true, lig,col);
 	col ++;
-	for (iter=lspinfos.begin(); iter!=lspinfos.end(); iter++, col++)
+	for (iter=lspinfos.begin(); iter!=lspinfos.end(); ++iter, col++)
 	{
 		DataPointInfo * pinfo = *iter;
 		txt = "";
@@ -853,7 +845,7 @@ void MeteoTableWidget::addLine_CloudCover (int lig)
 	int col = 0;
 	addCell_title_dataline (tr("Cloud cover"), true, lig,col);
 	col ++;
-	for (iter=lspinfos.begin(); iter!=lspinfos.end(); iter++, col++)
+	for (iter=lspinfos.begin(); iter!=lspinfos.end(); ++iter, col++)
 	{
 		DataPointInfo * pinfo = *iter;
 		txt = "";
@@ -885,7 +877,7 @@ void MeteoTableWidget::addLine_Categorical (uchar type, int lig)
 			break;
 	}
 	col ++;
-	for (iter=lspinfos.begin(); iter!=lspinfos.end(); iter++, col++)
+	for (iter=lspinfos.begin(); iter!=lspinfos.end(); ++iter, col++)
 	{
 		DataPointInfo * pinfo = *iter;
 		switch (type) {
@@ -915,13 +907,12 @@ void MeteoTableWidget::addLine_SnowDepth (int lig)
 	double v = -1000;
 	addCell_title_dataline (tr("Snow"), true, lig,col);
 	col ++;
-	for (iter=lspinfos.begin(); iter!=lspinfos.end(); iter++, col++)
+	for (iter=lspinfos.begin(); iter!=lspinfos.end(); ++iter, col++)
 	{
 		DataPointInfo * pinfo = *iter;
 		v = pinfo->snowDepth;
 		txt = "";
 		if (v >= 0) {
-			txt.sprintf("%.2f", v);
 			txt = Util::formatSnowDepth(v);
 			bgColor = QColor(plotter->getSnowDepthColor(v, true));
 		}
@@ -937,7 +928,7 @@ void MeteoTableWidget::addLine_SkewT (int lig)
 	int col = 0;
 	addCell_title_dataline (tr("SkewT-LogP"), true, lig,col);
 	col ++;
-	for (iter=lspinfos.begin(); iter!=lspinfos.end(); iter++, col++)
+	for (iter=lspinfos.begin(); iter!=lspinfos.end(); ++iter, col++)
 	{
 		DataPointInfo *pinfo = *iter;
 		addCell_SkewT (layout,lig,col, pinfo->date);
@@ -974,6 +965,10 @@ void MeteoTableWidget::addCell_content (
  	}
  	else if (cellType == MTABLE_CURRENT_CELL) {
 	 	cell = new TableCell_Current (vx, vy, (lat<0), plotter,
+	 				this, txt, false, bgcolor);
+ 	}
+ 	else if (cellType == MTABLE_WAVE_CELL) {
+	 	cell = new TableCell_Wave (vx, vy, (lat<0), plotter,
 	 				this, txt, false, bgcolor);
  	}
  	else if (cellType == MTABLE_CLOUD_CELL) {
@@ -1128,7 +1123,7 @@ TableCell_Current::TableCell_Current (double cx, double cy, bool south,
 
 	if (showCurrentArrows && GribDataIsDef(cx) && GribDataIsDef(cy))
 		setMinimumHeight(label->minimumSizeHint().height()+50);
-}	
+}
 //---------------------------------------------------------
 void TableCell_Current::paintEvent(QPaintEvent * e)
 {
@@ -1143,6 +1138,39 @@ void TableCell_Current::paintEvent(QPaintEvent * e)
 	}
 }
 
+//====================================================================
+// TableCell_Current : case seule spécialisée pour les vagues (flêche)
+//====================================================================
+TableCell_Wave::TableCell_Wave (double cx, double cy, bool south,
+        			GriddedPlotter *plotter,
+        			QWidget *parent, const QString& txt, bool bold,
+        			const QColor& bgcolor )
+	: TableCell(parent, txt, bold, bgcolor)
+{
+	this->cx = cx;
+	this->cy = cy;
+	this->south = south;
+	this->plotter = plotter;
+
+	waveArrowsColor = QColor(40,40,40);
+	showWaveArrows = Util::getSetting("MTABLE_showWaveArrows", true).toBool();
+
+	if (showWaveArrows && GribDataIsDef(cx) && GribDataIsDef(cy))
+		setMinimumHeight(label->minimumSizeHint().height()+50);
+}
+//---------------------------------------------------------
+void TableCell_Wave::paintEvent(QPaintEvent * e)
+{
+	TableCell::paintEvent(e);
+    QPainter pnt(this);
+	pnt.setRenderHint(QPainter::Antialiasing, true);
+
+	if (showWaveArrows && GribDataIsDef(cx) && GribDataIsDef(cy))
+	{
+    	plotter->drawCurrentArrow(
+    			pnt, width()/2, 25, cx, cy, south, waveArrowsColor);
+	}
+}
 
 //===================================================================
 // TableCell_Clouds : case seule spécialisée pour la nébulosité

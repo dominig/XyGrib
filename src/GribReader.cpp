@@ -36,16 +36,14 @@ GribReader::GribReader()
 	ymax = -1e300;
 }
 //-------------------------------------------------------------------------------
-void GribReader::openFile (const std::string &fname,
-							LongTaskProgress *taskProgress, int nbrecs)
+void GribReader::openFile (const QString &fname, int nbrecs)
 {
-	this->taskProgress = taskProgress;
-	taskProgress->continueDownload = true;
+	continueDownload = true;
 	setAllDataCenterModel.clear();
 	setAllDates.clear ();
 	setAllDataCode.clear ();
 	
-    if (!fname.empty()) {
+    if (!fname.isEmpty()) {
         openFilePriv (fname, nbrecs);
     }
     else {
@@ -131,7 +129,7 @@ void GribReader::readAllGribRecords (int nbrecs)
 	bool eof;
     do {
 		if (id%4 == 1)
-			taskProgress->setValue ((int)(100.0*id/nbrecs));
+			emit valueChanged ((int)(100.0*id/nbrecs));
 		
 		id ++;
 
@@ -157,6 +155,9 @@ void GribReader::readAllGribRecords (int nbrecs)
 					&& rec->getLevelType()==LV_GND_SURF && rec->getLevelValue()==0)
 			//-----------------------------------------
 			|| ( (rec->getDataType()==GRB_TMIN || rec->getDataType()==GRB_TMAX)
+					&& rec->getLevelType()==LV_ABOV_GND && rec->getLevelValue()==2)
+			//-----------------------------------------
+			|| ( rec->getDataType()==GRB_DEWPOINT
 					&& rec->getLevelType()==LV_ABOV_GND && rec->getLevelValue()==2)
 			//-----------------------------------------
 			|| (rec->getDataType()==GRB_TEMP
@@ -191,7 +192,8 @@ void GribReader::readAllGribRecords (int nbrecs)
 			//-----------------------------------------
 			// Current
 			//-----------------------------------------
-			|| ( (rec->getDataType()==GRB_CUR_VX || rec->getDataType()==GRB_CUR_VY)
+			|| ( (rec->getDataType()==GRB_CUR_VX || rec->getDataType()==GRB_CUR_VY
+			      || rec->getDataType()==GRB_CUR_DIR || rec->getDataType()==GRB_CUR_SPEED)
                     /*&& rec->getLevelType()==LV_GND_SURF
                     && rec->getLevelValue()==0*/ )
 			//-----------------------------------------
@@ -337,6 +339,8 @@ void GribReader::readAllGribRecords (int nbrecs)
             //-----------------------------------------
 			|| (rec->getLevelType()==LV_GND_SURF
 				&& (   rec->getDataType()==GRB_WAV_SIG_HT
+					|| rec->getDataType()==GRB_WAV_DIR
+					|| rec->getDataType()==GRB_WAV_PER
 					|| rec->getDataType()==GRB_WAV_WND_DIR
 					|| rec->getDataType()==GRB_WAV_WND_HT
 					|| rec->getDataType()==GRB_WAV_WND_PER
@@ -360,17 +364,18 @@ void GribReader::readAllGribRecords (int nbrecs)
 			}
 			else {
 				fprintf(stderr,
-					"GribReader: id=%d unknown data: key=0x%lx  idCenter==%d && idModel==%d && idGrid==%d\n",
+					"GribReader: id=%d unknown data: key=0x%lx  idCenter==%d && idModel==%d && idGrid==%d dataType==%d\n",
 					rec->getId(),
 					rec->getKey(),
-					rec->getIdCenter(), rec->getIdModel(), rec->getIdGrid()
+					rec->getIdCenter(), rec->getIdModel(), rec->getIdGrid(),
+					rec->getDataType()
 					);
 			}
 		}
-    } while (taskProgress->continueDownload && !eof);
+    } while (continueDownload && !eof);
 
     delete rec;
-	if (! taskProgress->continueDownload)
+	if (! continueDownload)
 		ok = false;
 }
 //---------------------------------------------------------------------------------
@@ -484,7 +489,7 @@ void  GribReader::copyFirstCumulativeRecord (DataCode dtc)
 		rec = getFirstGribRecord (dtc);
 		if (rec != nullptr)
 		{
-			GribRecord *r2 = new GribRecord (*rec);
+			GribRecord *r2 = new GribRecord (*rec, false);
 			r2->setRecordCurrentDate (dateref);    // 1er enregistrement factice
 			storeRecordInMap (r2);
 		}
@@ -510,7 +515,7 @@ void  GribReader::copyMissingWaveRecords (DataCode dtc)
 			if (rec2) {
 				if (!rec2->isDuplicated()) {
 					// create a copied record from date2
-					GribRecord *r2 = new GribRecord (*rec2);
+					GribRecord *r2 = new GribRecord (*rec2, false);
 					r2->setRecordCurrentDate (date);
 					storeRecordInMap (r2);
 				}
@@ -523,6 +528,8 @@ void  GribReader::copyMissingWaveRecords (DataCode dtc)
 void  GribReader::copyMissingWaveRecords ()
 {
 	copyMissingWaveRecords (DataCode(GRB_WAV_SIG_HT,LV_GND_SURF,0));
+	copyMissingWaveRecords (DataCode(GRB_WAV_DIR,LV_GND_SURF,0));
+	copyMissingWaveRecords (DataCode(GRB_WAV_PER,LV_GND_SURF,0));
 	copyMissingWaveRecords (DataCode(GRB_WAV_WND_DIR,LV_GND_SURF,0));
 	copyMissingWaveRecords (DataCode(GRB_WAV_WND_HT,LV_GND_SURF,0));
 	copyMissingWaveRecords (DataCode(GRB_WAV_WND_PER,LV_GND_SURF,0));
@@ -590,8 +597,8 @@ void GribReader::computeMissingData ()
                 {
                     for (int j=0; j<recModel->getNj(); j++)
                     {
-                        double x = recModel->getX(i);
-                        double y = recModel->getY(j);
+                        double x, y;
+                        recModel->getXY(i,j, &x, &y);
                         double dp = computeHumidRel (x, y, date);
                         recHumidRel->setValue(i, j, dp);
                     }
@@ -627,8 +634,9 @@ void GribReader::computeMissingData ()
                     {
                         for (int j=0; j<recModel->getNj(); j++)
                         {
-                            double x = recModel->getX(i);
-                            double y = recModel->getY(j);
+                            double x,y;
+
+                            recModel->getXY(i,j, &x, &y);
                             double temp = recTemp->getInterpolatedValue   (x, y);
                             double humid = recHumid->getInterpolatedValue (x, y);
                             double dp = DataRecordAbstract::dewpointHardy (temp, humid);
@@ -864,9 +872,9 @@ double 	GribReader::get2GribsInterpolatedValueByDate (
 bool GribReader::getZoneExtension (double *x0,double *y0, double *x1,double *y1)
 {
     if (ok) {
-        *x0 = (getXmin () > 180) ? getXmin() - 360 : getXmin();
+        *x0 = getXmin();
 		*y0 = getYmin ();
-        *x1 = (getXmax () > 180) ? getXmax() - 360 : getXmax();
+        *x1 = getXmax();
 		*y1 = getYmax ();
         return true;
     }
@@ -934,7 +942,7 @@ void GribReader::createListDates()
 //-------------------------------------------------------------------------------
 // Lecture complète d'un fichier GRIB
 //-------------------------------------------------------------------------------
-void GribReader::openFilePriv (const std::string& fname, int nbrecs)
+void GribReader::openFilePriv (const QString& fname, int nbrecs)
 {
 //     debug("Open file: %s", fname.c_str());
     fileName = fname;
@@ -943,17 +951,15 @@ void GribReader::openFilePriv (const std::string& fname, int nbrecs)
     //--------------------------------------------------------
     // Ouverture du fichier
     //--------------------------------------------------------
-    file = zu_open (fname.c_str(), "rb", ZU_COMPRESS_AUTO);
+    file = zu_open (qPrintable(fname), "rb", ZU_COMPRESS_AUTO);
     if (file == nullptr) {
-        erreur("Can't open file: %s", fname.c_str());
+        erreur("Can't open file: %s", qPrintable(fname));
         return;
     }
     
-	taskProgress->setMessage (LTASK_OPEN_FILE);
-	taskProgress->setValue (0);
+	emit newMessage (LongTaskMessage::LTASK_OPEN_FILE);
     if (nbrecs > 0) {
-		taskProgress->setMessage (LTASK_PREPARE_MAPS);
-		taskProgress->setValue (0);
+		emit newMessage (LongTaskMessage::LTASK_PREPARE_MAPS);
 		readGribFileContent (nbrecs);
 		// should be done once after opening all files.
 		computeAccumulationRecords ();
@@ -999,7 +1005,7 @@ void GribReader::openFilePriv (const std::string& fname, int nbrecs)
 // 	return nb;
 // }
 //-------------------------------------------------------------------------------
-int GribReader::countGribRecords (ZUFILE *f, LongTaskProgress *taskProgress)
+int GribReader::countGribRecords (ZUFILE *f)
 {
 	//qint64 fsize = zu_filesize(f);
 	qint64 i=0;
@@ -1010,7 +1016,7 @@ int GribReader::countGribRecords (ZUFILE *f, LongTaskProgress *taskProgress)
 	int nblus;
 	char buf[sizebuf];
 	zu_rewind (f);
-	while (taskProgress->continueDownload && (nblus=zu_read(f,buf,sizebuf))>0) {
+	while (continueDownload && (nblus=zu_read(f,buf,sizebuf))>0) {
 		for (i=0; i<nblus; i++) {
 			c = buf[i];
 			if (  (j==0 && c=='G')
@@ -1028,7 +1034,7 @@ int GribReader::countGribRecords (ZUFILE *f, LongTaskProgress *taskProgress)
 			}
 		}
 	}
-	if (! taskProgress->continueDownload)
+	if (! continueDownload)
 		nb = 0;
 	zu_rewind (f);
 	return nb;

@@ -21,6 +21,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <cmath>
 
+static float polar_dir(float vx, float vy)
+{
+	float dir = -std::atan2(-vx, vy) *180.0f/M_PI + 180.f;
+	if (dir < 0.f)
+		return dir +360.f;
+	if (dir >= 360.f)
+		return dir -360.f;
+	return dir;
+}
+
 DataPointInfo::DataPointInfo (GriddedReader *reader,
                     double x, double y, time_t  date )
 {
@@ -57,12 +67,14 @@ DataPointInfo::DataPointInfo (GriddedReader *reader,
 	wave_swl_ht = getValue(DataCode(GRB_WAV_SWL_HT,LV_GND_SURF,0));
 	wave_wnd_ht = getValue(DataCode(GRB_WAV_WND_HT,LV_GND_SURF,0));
 
+	wave_per     = getValue(DataCode(GRB_WAV_PER,LV_GND_SURF,0));
 	wave_wnd_per = getValue(DataCode(GRB_WAV_WND_PER,LV_GND_SURF,0));
 	wave_swl_per = getValue(DataCode(GRB_WAV_SWL_PER,LV_GND_SURF,0));
 	wave_pr_per = getValue(DataCode(GRB_WAV_PRIM_PER,LV_GND_SURF,0));
 	wave_scdy_per = getValue(DataCode(GRB_WAV_SCDY_PER,LV_GND_SURF,0));
 	wave_max_per = getValue(DataCode(GRB_WAV_MAX_PER,LV_GND_SURF,0));
 
+	wave_dir     = getValue(DataCode(GRB_WAV_DIR,LV_GND_SURF,0));
 	wave_wnd_dir = getValue(DataCode(GRB_WAV_WND_DIR,LV_GND_SURF,0));
 	wave_swl_dir = getValue(DataCode(GRB_WAV_SWL_DIR,LV_GND_SURF,0));
 	wave_pr_dir = getValue(DataCode(GRB_WAV_PRIM_DIR,LV_GND_SURF,0));
@@ -125,13 +137,17 @@ DataPointInfo::DataPointInfo (GriddedReader *reader,
 	vy_10m = getValue(DataCode(GRB_WIND_VY,LV_ABOV_GND,10));
     if (GribDataIsDef(vx_10m) && GribDataIsDef(vy_10m)) {
 		windSpeed_10m = std::sqrt (vx_10m*vx_10m + vy_10m*vy_10m);
-		windDir_10m = - std::atan2 (-vx_10m, vy_10m) *180.0/M_PI + 180;
-		if (windDir_10m < 0)    windDir_10m += 360.0;
-		else if (windDir_10m >= 360) windDir_10m -= 360.0;
+		windDir_10m = polar_dir(vx_10m, vy_10m);
 	}
 	else {
-		windSpeed_10m = GRIB_NOTDEF;
-		windDir_10m = GRIB_NOTDEF;
+		windSpeed_10m = getValue(DataCode(GRB_WIND_SPEED,LV_ABOV_GND,10));
+		windDir_10m = getValue(DataCode(GRB_WIND_DIR,LV_ABOV_GND,10));
+		if (GribDataIsDef(windSpeed_10m) && GribDataIsDef(windDir_10m)) {
+			double ang = windDir_10m/180.0*M_PI;
+			double si= windSpeed_10m*sin(ang),  co= windSpeed_10m*cos(ang);
+			vx_10m = -si;
+			vy_10m = -co;
+		}
 	}
 	//-----------------------------------------
 	// Wind surface
@@ -140,13 +156,17 @@ DataPointInfo::DataPointInfo (GriddedReader *reader,
 	vy_gnd = getValue(DataCode(GRB_WIND_VY,LV_GND_SURF,0));
     if (GribDataIsDef(vx_gnd) && GribDataIsDef(vy_gnd)) {
 		windSpeed_gnd = std::sqrt (vx_gnd*vx_gnd + vy_gnd*vy_gnd);
-		windDir_gnd = - std::atan2 (-vx_gnd, vy_gnd) *180.0/M_PI + 180;
-		if (windDir_gnd < 0)    windDir_gnd += 360.0;
-		else if (windDir_gnd >= 360) windDir_gnd -= 360.0;
+		windDir_gnd = polar_dir(vx_gnd, vy_gnd);
 	}
 	else {
-		windSpeed_gnd = GRIB_NOTDEF;
-		windDir_gnd = GRIB_NOTDEF;
+		windSpeed_gnd = getValue(DataCode(GRB_WIND_SPEED,LV_GND_SURF,0));
+		windDir_gnd = getValue(DataCode(GRB_WIND_DIR,LV_GND_SURF,0));
+		if (GribDataIsDef(windSpeed_gnd) && GribDataIsDef(windDir_gnd)) {
+			double ang = windDir_gnd/180.0*M_PI;
+			double si= windSpeed_gnd*sin(ang),  co= windSpeed_gnd*cos(ang);
+			vx_gnd = -si;
+			vy_gnd = -co;
+		}
 	}
 	//-----------------------------------------
     // Current
@@ -169,13 +189,26 @@ DataPointInfo::DataPointInfo (GriddedReader *reader,
 
     if (GribDataIsDef(cx) && GribDataIsDef(cy)) {
 		currentSpeed = std::sqrt (cx*cx + cy*cy);
-		currentDir = - std::atan2 (-cx, cy) *180.0/M_PI;
-		if (currentDir < 0)    currentDir += 360.0;
-		else if (currentDir >= 360) currentDir -= 360.0;
+		// unlike wind current direction is to X not from X
+		currentDir = polar_dir(-cx, -cy);
 	}
 	else {
-		currentSpeed = GRIB_NOTDEF;
-		currentDir = GRIB_NOTDEF;
+		currentSpeed = getValue(DataCode(GRB_CUR_SPEED,LV_GND_SURF,0));
+		currentDir = getValue(DataCode(GRB_CUR_DIR,LV_GND_SURF,0));;
+		if (GribDataIsDef(currentSpeed) && GribDataIsDef(currentDir)) {
+			double ang = currentDir/180.0*M_PI;
+			double si= currentSpeed*sin(ang),  co= currentSpeed*cos(ang);
+			cx = -si;
+			cy = -co;
+		}
+		if (GribDataIsDef(currentDir)) {
+			// XXX I convert UV this way but what about other?
+			currentDir -= 180.;
+			if (currentDir < 0.)
+				currentDir += 360.;
+			if (currentDir >= 360.)
+				currentDir -=360.;
+		}
 	}
 	//-------------------------------------------------------------
 	// Data in altitude
@@ -308,10 +341,14 @@ float DataPointInfo::getDataValue (const DataCode &dtc) const
 		//-----------------------------------
 		case GRB_WAV_SIG_HT:
 				return wave_sig_ht;
+		case GRB_WAV_DIR:
+				return wave_dir;
 		case GRB_WAV_WND_DIR:
 				return wave_wnd_dir;
 		case GRB_WAV_WND_HT:
 				return wave_wnd_ht;
+		case GRB_WAV_PER:
+				return wave_per;
 		case GRB_WAV_WND_PER:
 				return wave_wnd_per;
 		case GRB_WAV_SWL_DIR:
@@ -354,6 +391,11 @@ bool DataPointInfo::getWaveValues (int prvtype,
 							float *ht, float *per, float *dir)  const
 {	
 	switch (prvtype) {
+		case GRB_PRV_WAV_SIG:
+			*ht  = getWaveData (GRB_WAV_SIG_HT);
+			*dir = getWaveData (GRB_WAV_DIR);
+			*per = getWaveData (GRB_WAV_PER);
+			break;
 		case GRB_PRV_WAV_MAX:
 			*ht  = getWaveData (GRB_WAV_MAX_HT);
 			*dir = getWaveData (GRB_WAV_MAX_DIR);
@@ -386,6 +428,26 @@ bool DataPointInfo::getWaveValues (int prvtype,
 			return false;
 	}
     return GribDataIsDef(*ht) || GribDataIsDef(*dir) || GribDataIsDef(*per);
+}
+//--------------------------------------------------------
+void DataPointInfo::getWaveWxWy (int prvtype, float *wx, float *wy)  const
+{
+	float ht;
+	float per;
+	float dir;
+
+	*wx = GRIB_NOTDEF;
+	*wy = GRIB_NOTDEF;
+
+	if (!getWaveValues (prvtype, &ht, &per, &dir))
+		return;
+	if (!GribDataIsDef(dir) || !GribDataIsDef(per))
+		return;
+
+	double ang = dir/180.0*M_PI;
+	double si= per*sin(ang),  co= per*cos(ang);
+	*wx = -si;
+	*wy = -co;
 }
 //--------------------------------------------------------
 float DataPointInfo::getWaveData (int type)  const

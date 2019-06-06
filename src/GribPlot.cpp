@@ -50,22 +50,35 @@ void GribPlot::initNewGribPlot(bool interpolateValues, bool windArrowsOnGribGrid
 	this->drawCurrentArrowsOnGrid = currentArrowsOnGribGrid;
 }
 //----------------------------------------------------
-void GribPlot::loadFile (const QString &fileName,
-						 LongTaskProgress * taskProgress, int nbrecs)
+void GribPlot::loadGrib (LongTaskProgress * taskProgress, int nbrecs)
 {
-	this->fileName = fileName;
 	listDates.clear();
     
-    delete gribReader;
-	
-	gribReader = new GribReader ();
+	if (taskProgress != nullptr) 
+	{
+	    QObject::connect(gribReader, &LongTaskMessage::valueChanged,
+	            taskProgress, &LongTaskProgress::setValue);
 
-    gribReader->openFile (qPrintable(fileName), taskProgress, nbrecs);
+	    QObject::connect(gribReader, &LongTaskMessage::newMessage,
+	            taskProgress, &LongTaskProgress::setMessage);
+
+	    QObject::connect(taskProgress,   &LongTaskProgress::canceled,
+	    		gribReader, &LongTaskMessage::cancel);
+    }
+    gribReader->openFile (fileName, nbrecs);
     if (gribReader->isOk())
     {
         listDates = gribReader->getListDates();
         setCurrentDate ( !listDates.empty() ? *(listDates.begin()) : 0);
     }
+}
+//----------------------------------------------------
+void GribPlot::loadFile (const QString &fileName, LongTaskProgress * taskProgress, int nbrecs)
+{
+	this->fileName = fileName;
+    delete gribReader;
+	gribReader = new GribReader ();
+	loadGrib(taskProgress, nbrecs);
 }
 
 //----------------------------------------------------
@@ -114,28 +127,45 @@ void GribPlot::draw_GridPoints (const DataCode &dtc, QPainter &pnt, const Projec
     }
 //     GribRecord *rec = gribReader->getFirstGribRecord ();
 	DataCode dd;
-	if (dtc.dataType == GRB_PRV_WIND_XY2D)
-		dd = DataCode (GRB_WIND_VX, dtc.levelType, dtc.levelValue);
-	else if (dtc.dataType == GRB_PRV_CUR_XY2D)
-		dd = DataCode (GRB_CUR_VX, dtc.levelType, dtc.levelValue);
-	else
-		dd = dtc;
+	int type = gribReader->getDataTypeAlias(dtc.dataType);
+
+	dd = DataCode (type, dtc.levelType, dtc.levelValue);
 		
     GribRecord *rec = gribReader->getRecord (dd, getCurrentDate());
 	if (! rec)
 			return;
 	int deltaI, deltaJ;
 	analyseVisibleGridDensity (proj, rec, 6, &deltaI, &deltaJ);
-    int px,py, i,j, dl=2;
-    for (i=0; i<rec->getNi(); i+=deltaI)
-        for (j=0; j<rec->getNj(); j+=deltaJ)
+    int px,py, px1, py1;
+    const int dl=2;
+	double lon, lat;
+
+    /*
+	  XXX display a warning
+    */
+    rec->getXY(0, 0, &lon , &lat);
+	proj->map2screen(lon, lat, &px,&py);
+    rec->getXY(1, 0, &lon , &lat);
+	proj->map2screen(lon, lat, &px1, &py1);
+	if (abs(px -px1) < dl *4)
+		return;
+    rec->getXY(0, 0, &lon , &lat);
+	proj->map2screen(lon, lat, &px,&py);
+    rec->getXY(0, 1, &lon , &lat);
+	proj->map2screen(lon, lat, &px1, &py1);
+	if (abs(py -py1) < dl *4)
+		return;
+
+    for (int i=0; i<rec->getNi(); i+=deltaI)
+        for (int j=0; j<rec->getNj(); j+=deltaJ)
         {
-            //if (rec->hasValue(i,j))
+            if (rec->hasValue(i,j))
             {
-                proj->map2screen(rec->getX(i), rec->getY(j), &px,&py);
+                rec->getXY(i, j, &lon , &lat);
+                proj->map2screen(lon, lat, &px,&py);
                 pnt.drawLine(px-dl,py, px+dl,py);
                 pnt.drawLine(px,py-dl, px,py+dl);
-                proj->map2screen(rec->getX(i)-360.0, rec->getY(j), &px,&py);
+                proj->map2screen(lon -360.0, lat, &px,&py);
                 pnt.drawLine(px-dl,py, px+dl,py);
                 pnt.drawLine(px,py-dl, px,py+dl);
             }
@@ -160,6 +190,17 @@ void GribPlot::draw_WIND_Arrows (
 								(DataCode(GRB_WIND_VX,altitude),currentDate);
     GribRecord *recy = gribReader->getRecord 
 								(DataCode(GRB_WIND_VY,altitude),currentDate);
+
+	bool polar = false;
+    if (recx == nullptr || recy == nullptr) {
+    	polar = true;
+    	recx = gribReader->getRecord
+								(DataCode(GRB_WIND_SPEED,altitude),currentDate);
+		recy = gribReader->getRecord 
+								(DataCode(GRB_WIND_DIR,altitude),currentDate);
+    }
+
+
     if (recx == nullptr || recy == nullptr)
         return;        
 	
@@ -180,8 +221,7 @@ void GribPlot::draw_WIND_Arrows (
     	{
 			for (int gj=0; gj<recx->getNj(); gj++)
 			{
-				x = recx->getX(gi);
-				y = recx->getY(gj);
+				recx->getXY(gi, gj, &x, &y);
 				
                 //----------------------------------------------------------------------
                 if (! recx->isXInMap(x))
@@ -195,6 +235,14 @@ void GribPlot::draw_WIND_Arrows (
                     vy = recy->getInterpolatedValue(x, y, mustInterpolateValues);
                     if (GribDataIsDef(vx) && GribDataIsDef(vy))
                     {
+                    	if (polar) {
+                    		// vy angle
+                    		// vx speed
+                    		double ang = vy/180.0*M_PI;
+                    		double si=vx*sin(ang),  co=vx*cos(ang);
+                    		vx = -si;
+                    		vy = -co;
+                    	}
                         if (barbules)
                             drawWindArrowWithBarbs(pnt, i,j, vx,vy, (y<0), arrowsColor);
                         else
@@ -214,15 +262,21 @@ void GribPlot::draw_WIND_Arrows (
 			j0 = 0;
 		}
 		else {
+			double lon, lat;
+
 			if (recx->getDeltaY() > 0)
-				proj->map2screen (recx->getX(0), recx->getY(recx->getNj()-1), &i0, &j0);
+				recx->getXY(0, recx->getNj()-1, &lon, &lat);
 			else
-				proj->map2screen (recx->getX(0), recx->getY(0), &i0, &j0);
+				recx->getXY(0, 0, &lon, &lat);
+			proj->map2screen (lon, lat, &i0, &j0);
 			if (i0 > W) {
-				if (recx->getDeltaY() > 0)
-					proj->map2screen (recx->getX(0)-360, recx->getY(recx->getNj()-1), &i0, &j0);
+				if (recx->getDeltaY() > 0) {
+					recx->getXY(0, recx->getNj()-1, &lon, &lat);
+					lon -= 360.;
+				}
 				else
-					proj->map2screen (recx->getX(0), recx->getY(0), &i0, &j0);
+					recx->getXY(0, 0, &lon, &lat);
+				proj->map2screen (lon, lat, &i0, &j0);
 			}
 		}
 		if (j0<0) {
@@ -241,6 +295,12 @@ void GribPlot::draw_WIND_Arrows (
 					vy = recy->getInterpolatedValue(x, y, mustInterpolateValues);
 					if (GribDataIsDef(vx) && GribDataIsDef(vy))
 					{
+                    	if (polar) {
+                    		double ang = vy/180.0*M_PI;
+                    		double si=vx*sin(ang),  co=vx*cos(ang);
+                    		vx = -si;
+                    		vy = -co;
+                    	}
 						if (barbules)
 							drawWindArrowWithBarbs(pnt, i,j, vx,vy, (y<0), arrowsColor);
 						else
@@ -275,6 +335,15 @@ void GribPlot::draw_CURRENT_Arrows (
 								(DataCode(GRB_CUR_VX,altitude),currentDate);
     GribRecord *recy = gribReader->getRecord 
 								(DataCode(GRB_CUR_VY,altitude),currentDate);
+	bool polar = false;
+    if (recx == nullptr || recy == nullptr) {
+    	polar = true;
+    	recx = gribReader->getRecord
+								(DataCode(GRB_CUR_SPEED,altitude),currentDate);
+		recy = gribReader->getRecord 
+								(DataCode(GRB_CUR_DIR,altitude),currentDate);
+    }
+
     if (recx == nullptr || recy == nullptr)
         return;        
     int i, j;
@@ -290,16 +359,14 @@ void GribPlot::draw_CURRENT_Arrows (
     	int oldi=-1000, oldj=-1000;
     	for (int gi=0; gi<recx->getNi(); gi++)
     	{
-			x = recx->getX(gi);
-			y = recx->getY(0);
+			recx->getXY(gi, 0, &x, &y);
 			proj->map2screen(x,y, &i,&j);
 			if (true || abs(i-oldi)>=space)
 			{
 				oldi = i;
 				for (int gj=0; gj<recx->getNj(); gj++)
 				{
-					x = recx->getX(gi);
-					y = recx->getY(gj);
+					recx->getXY(gi, gj, &x, &y);
 					proj->map2screen(x,y, &i,&j);
 					
 						//----------------------------------------------------------------------
@@ -314,6 +381,12 @@ void GribPlot::draw_CURRENT_Arrows (
 								vy = recy->getInterpolatedValue(x, y, mustInterpolateValues);
 								if (GribDataIsDef(vx) && GribDataIsDef(vy))
 								{
+									if (polar) {
+										double ang = vy/180.0*M_PI;
+										double si=vx*sin(ang),  co=vx*cos(ang);
+										vx = -si;
+										vy = -co;
+									}
 									drawCurrentArrow(pnt, i,j, vx,vy);
 								}
 							}
@@ -337,6 +410,12 @@ void GribPlot::draw_CURRENT_Arrows (
 					vy = recy->getInterpolatedValue(x, y, mustInterpolateValues);
 					if (GribDataIsDef(vx) && GribDataIsDef(vy))
 					{
+						if (polar) {
+							double ang = vy/180.0*M_PI;
+							double si=vx*sin(ang),  co=vx*cos(ang);
+							vx = -si;
+							vy = -co;
+						}
 						drawCurrentArrow(pnt, i,j, vx,vy);
 					}
 				}
@@ -360,7 +439,7 @@ void GribPlot::draw_ColoredMapPlain (
 		dtc.dataType = GRB_PRV_WIND_XY2D;
 	}
 	DataCode dtc2 = dtc;
-	if (useJetStreamColorMap && dtc.dataType==GRB_PRV_WIND_XY2D) {
+	if (useJetStreamColorMap && (dtc.dataType==GRB_PRV_WIND_XY2D || dtc.dataType==GRB_WIND_SPEED)) {
 		dtc2.dataType = GRB_PRV_WIND_JET;
 	}
 	DataColors::setColorDataTypeFunction (dtc2);
@@ -386,6 +465,25 @@ void GribPlot::draw_ColoredMapPlain (
 							DataCode (GRB_DEWPOINT, dtc.levelType,dtc.levelValue),
 							DataColors::function_getColor );
 			break;
+		case GRB_WIND_GUST :
+			if (!useGustColorAbsolute) {
+				if (hasData (GRB_WIND_VX, LV_ABOV_GND, 10)) {
+					drawColorMapGeneric_Abs_Delta_2D (pnt,proj,smooth,
+							DataCode (GRB_WIND_VX, LV_ABOV_GND, 10),
+							DataCode (GRB_WIND_VY, LV_ABOV_GND, 10),
+							dtc,
+							DataColors::function_getColor );
+					break;
+				}
+				if (hasData (GRB_WIND_SPEED, LV_ABOV_GND, 10)) {
+					drawColorMapGeneric_Abs_Delta_Data (pnt,proj,smooth,
+							DataCode (GRB_WIND_GUST, dtc.levelType, dtc.levelValue),
+							DataCode (GRB_WIND_SPEED, LV_ABOV_GND, 10),
+							DataColors::function_getColor );
+					break;
+				}
+			}
+			// fall through
 		case GRB_TEMP :
 		case GRB_CLOUD_TOT : 
 		case GRB_PRECIP_TOT :
@@ -404,6 +502,8 @@ void GribPlot::draw_ColoredMapPlain (
 		case GRB_WAV_SIG_HT :
 		case GRB_WAV_MAX_HT :
 		case GRB_WAV_WHITCAP_PROB :
+		case GRB_WIND_SPEED :
+		case GRB_CUR_SPEED :
 			drawColorMapGeneric_1D (pnt,proj,smooth, dtc, DataColors::function_getColor);
 			break;
 		default :
@@ -422,29 +522,38 @@ void GribPlot::draw_WAVES_Arrows (
     if (!isReaderOk() || dtc.dataType == GRB_TYPE_NOT_DEFINED)
         return;
     QColor waveArrowColor (0,0,0);
-    GribRecord *recDir, *recPer;
-	if (dtc.dataType == GRB_PRV_WAV_PRIM) {
+    GribRecord *recDir, *recPer, *recHt;
+    recDir = nullptr;
+    recPer = nullptr;
+    recHt  = nullptr;
+
+	if (dtc.dataType == GRB_PRV_WAV_SIG) {
+		recDir = gribReader->getRecord (DataCode(GRB_WAV_DIR,LV_GND_SURF,0), currentDate);
+		recPer = gribReader->getRecord (DataCode(GRB_WAV_PER,LV_GND_SURF,0), currentDate);
+		recHt  = gribReader->getRecord (DataCode(GRB_WAV_SIG_HT,LV_GND_SURF,0), currentDate);
+	}
+	else if (dtc.dataType == GRB_PRV_WAV_PRIM) {
 		recDir = gribReader->getRecord (DataCode(GRB_WAV_PRIM_DIR,LV_GND_SURF,0), currentDate);
-//		recPer = gribReader->getRecord (DataCode(GRB_WAV_PRIM_PER,LV_GND_SURF,0), currentDate);
+		recPer = gribReader->getRecord (DataCode(GRB_WAV_PRIM_PER,LV_GND_SURF,0), currentDate);
 	}
 	else if (dtc.dataType == GRB_PRV_WAV_SCDY) {
 		recDir = gribReader->getRecord (DataCode(GRB_WAV_SCDY_DIR,LV_GND_SURF,0), currentDate);
-//		recPer = gribReader->getRecord (DataCode(GRB_WAV_SCDY_PER,LV_GND_SURF,0), currentDate);
+		recPer = gribReader->getRecord (DataCode(GRB_WAV_SCDY_PER,LV_GND_SURF,0), currentDate);
 	}
 	else if (dtc.dataType == GRB_PRV_WAV_MAX) {
 		recDir = gribReader->getRecord (DataCode(GRB_WAV_MAX_DIR,LV_GND_SURF,0), currentDate);
-//		recPer = gribReader->getRecord (DataCode(GRB_WAV_MAX_PER,LV_GND_SURF,0), currentDate);
+		recPer = gribReader->getRecord (DataCode(GRB_WAV_MAX_PER,LV_GND_SURF,0), currentDate);
+		recHt  = gribReader->getRecord (DataCode(GRB_WAV_MAX_HT,LV_GND_SURF,0), currentDate);
 	}
 	else if (dtc.dataType == GRB_PRV_WAV_SWL) {
 		recDir = gribReader->getRecord (DataCode(GRB_WAV_SWL_DIR,LV_GND_SURF,0), currentDate);
-//		recPer = gribReader->getRecord (DataCode(GRB_WAV_SWL_PER,LV_GND_SURF,0), currentDate);
+		recPer = gribReader->getRecord (DataCode(GRB_WAV_SWL_PER,LV_GND_SURF,0), currentDate);
+		recHt  = gribReader->getRecord (DataCode(GRB_WAV_SWL_HT,LV_GND_SURF,0), currentDate);
 	}
 	else if (dtc.dataType == GRB_PRV_WAV_WND) {
 		recDir = gribReader->getRecord (DataCode(GRB_WAV_WND_DIR,LV_GND_SURF,0), currentDate);
-//		recPer = gribReader->getRecord (DataCode(GRB_WAV_WND_PER,LV_GND_SURF,0), currentDate);
-	}
-	else {
-        recDir = recPer = nullptr;
+		recPer = gribReader->getRecord (DataCode(GRB_WAV_WND_PER,LV_GND_SURF,0), currentDate);
+		recHt   = gribReader->getRecord (DataCode(GRB_WAV_WND_HT,LV_GND_SURF,0), currentDate);
 	}
 //    if (recDir==NULL || recPer==NULL)
     if (recDir==nullptr)
@@ -464,16 +573,14 @@ void GribPlot::draw_WAVES_Arrows (
     	int oldi=-1000, oldj=-1000;
     	for (int gi=0; gi<recDir->getNi(); gi++)
     	{
-			x = recDir->getX(gi);
-			y = recDir->getY(0);
+			recDir->getXY(gi, 0, &x, &y);
 			proj->map2screen(x,y, &i,&j);
 			if (true || abs(i-oldi)>=space)
 			{
 				oldi = i;
 				for (int gj=0; gj<recDir->getNj(); gj++)
 				{
-					x = recDir->getX(gi);
-					y = recDir->getY(gj);
+					recDir->getXY(gi, gj, &x, &y);
 					proj->map2screen(x,y, &i,&j);
 						//----------------------------------------------------------------------
 						if (! recDir->isXInMap(x))
@@ -485,9 +592,12 @@ void GribPlot::draw_WAVES_Arrows (
                                 vxy = recDir->getInterpolatedValue(x, y, mustInterpolateValues);
 //                                vy = recPer->getInterpolatedValue(x, y, mustInterpolateValues);
 //                                if (vxy != GRIB_NOTDEF && vy != GRIB_NOTDEF)
-                                if (GribDataIsDef(vxy))
-                                {
+                                if (GribDataIsDef(vxy)) {
 //                                    drawWaveArrow (pnt, i,j, vxy,vy);
+                                    if (recHt && recHt->getInterpolatedValue(x, y, mustInterpolateValues) < 0.01)
+                                    	continue;
+                                    if (recPer && recPer->getInterpolatedValue(x, y, mustInterpolateValues) < 0.01)
+                                    	continue;
                                     drawWaveArrow (pnt, i,j, vxy);
                                 }
 							}
@@ -512,6 +622,10 @@ void GribPlot::draw_WAVES_Arrows (
                     if (GribDataIsDef(vxy))
 					{
 //                        drawWaveArrow (pnt, i,j, vx,vy);
+                        if (recHt && recHt->getInterpolatedValue(x, y, mustInterpolateValues) < 0.01)
+                        	continue;
+                        if (recPer && recPer->getInterpolatedValue(x, y, mustInterpolateValues) < 0.01)
+                        	continue;
                         drawWaveArrow (pnt, i,j, vxy);
                     }
 				}

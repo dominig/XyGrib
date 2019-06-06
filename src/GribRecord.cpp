@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-#include <time.h>
+#include <ctime>
 
 #include "GribRecord.h"
 
@@ -77,6 +77,13 @@ void  GribRecord::translateDataType ()
         dataCenterModel = NOAA_NAM;
     }
     //------------------------
+    // GLOBAL GFS ENSEMBLE 
+    // https://nomads.ncep.noaa.gov/txt_descriptions/GFS_Ensemble_high_resolution_doc.shtml
+    //------------------------
+    else if (idCenter==7 && idModel==107) {
+        dataCenterModel = NOAA_GFS_ENSEMBLE;
+    }
+    //------------------------
     // Meteo France Arome/Arpege
     //------------------------
     else if (idCenter==84 && (idModel==204 || idModel==121 || idModel==211) && idGrid==255) {
@@ -92,14 +99,17 @@ void  GribRecord::translateDataType ()
 				levelType  = LV_ATMOS_ALL;
 				levelValue = 0;
 		}
-        if (idModel==211)
+        if (idModel==211) {
             if (Di>=0.5)
                 dataCenterModel = MF_ARPEGE;
             else
                 dataCenterModel = MF_ARPEGE_EU;
+        }
         else if (idModel==204)
             dataCenterModel = MF_AROME;
-
+	}
+	else if ( idCenter==85 && idModel==26 ) {
+		dataCenterModel = MF_WAM;
 	}
 //    else if (idCenter==84 && idModel==211 && idGrid==255){
 //        dataCenterModel = MF_ARPEGE_GLOBAL;
@@ -107,9 +117,7 @@ void  GribRecord::translateDataType ()
 	//------------------------
 	// CEP navimail
 	//------------------------
-	else if (   
-                (idCenter==85 && idModel==1 && idGrid==255)
-	) {
+	else if ( idCenter==85 && idModel==1 && idGrid==255 ) {
 		dataCenterModel = NORWAY_METNO;
 	}
 	//------------------------
@@ -143,7 +151,7 @@ void  GribRecord::translateDataType ()
 	//----------------------------------------------
 	// FNMOC WW3 equatorial america and europa
 	//----------------------------------------------
-	else if (idCenter==58 && idModel==11 && idGrid==255) 
+	else if (idCenter==58 && idModel==11 && idGrid==255)
 	{
 		dataCenterModel = FNMOC_WW3_EQAM;
 	}
@@ -235,6 +243,90 @@ void  GribRecord::translateDataType ()
 			levelValue = 0;
 		}
 	}
+	//----------------------------------------------
+	// ECMWF ERA5
+	//----------------------------------------------
+    else if (idCenter==98 && (idModel==145|| idModel==255 ) && idGrid==255 && tableVersion == 128)
+    {
+        dataCenterModel = ECMWF_ERA5;
+        if (getLevelType()==LV_GND_SURF && getLevelValue()==0) {
+            if (getDataType() == 141) // Snow depth  (m of water equivalent)
+            {
+                dataType = GRB_SNOW_DEPTH;
+            }
+            else if (getDataType() == 151)
+            {
+                dataType = GRB_PRESSURE_MSL;
+                levelType = LV_MSL;
+            }
+            else if (getDataType() == 165 || getDataType() == 166)
+            {
+                if (getDataType() == 165)
+                    dataType = GRB_WIND_VX;
+                if (getDataType()== 166)
+                    dataType = GRB_WIND_VY;
+                levelType = LV_ABOV_GND;
+                levelValue = 10;
+            }
+            else if (getDataType() == 167)
+            {
+                dataType = GRB_TEMP;
+                levelType = LV_ABOV_GND;
+                levelValue = 2;
+            }
+            else if (getDataType() == 168)
+            {
+                dataType = GRB_DEWPOINT;
+                levelType = LV_ABOV_GND;
+                levelValue = 2;
+            }
+            else if (getDataType() == 34)
+            {
+                dataType = -1; // Sea surface temperature (K)
+            }
+            else if (getDataType() == 164)
+            {
+                dataType = GRB_CLOUD_TOT;
+                levelType = LV_ATMOS_ALL;
+                multiplyAllData( 100.0 );
+            }
+            else if (getDataType() == 228)
+            {
+                dataType = GRB_PRECIP_TOT;
+                // m/h -> mm/h
+                multiplyAllData( 1000.0 );
+            }
+        }
+    }
+    else if (idCenter==98 && idModel==145 && idGrid==255 && tableVersion == 228)
+    {
+        dataCenterModel = ECMWF_ERA5;
+        if (getLevelType()==LV_GND_SURF && getLevelValue()==0) {
+            if (getDataType() == 29)
+            {
+                dataType = GRB_WIND_GUST;
+                // levelValue = 10; // XXX really 10 but we only display 0
+            }
+        }
+    }
+	//----------------------------------------------
+	// ECMWF ERA5 WAVE
+	//----------------------------------------------
+    else if (idCenter==98 && idModel==111 && idGrid==255 && tableVersion == 140)
+    {
+        dataCenterModel = ECMWF_ERA5;
+        switch (getDataType()) {
+        case 229: // SWH Significant height of combined wind waves and swell (m)
+            dataType = GRB_WAV_SIG_HT;
+            break;
+        case 230: // MWD Mean wave direction (Degree true)
+            dataType = GRB_WAV_PRIM_DIR;
+            break;
+        case 232: // MWP Mean wave period (s)
+            dataType = GRB_WAV_PRIM_PER;
+            break;
+        }
+    }
 	//------------------------------------------
     // PredictWind EMCWF grib1 Also ECMWF public data grib2
     // contributed by did-g
@@ -298,6 +390,8 @@ void  GribRecord::translateDataType ()
 	if (this->knownData) {
 		switch (getDataType()) {
 			case GRB_WAV_SIG_HT:
+			case GRB_WAV_DIR:
+			case GRB_WAV_PER:
 			case GRB_WAV_WND_DIR:
 			case GRB_WAV_WND_HT:
 			case GRB_WAV_WND_PER:
@@ -395,24 +489,9 @@ fprintf(stderr,"hasBMS=%d isScanIpositive=%d isScanJpositive=%d isAdjacentI=%d\n
 }
 
 //-------------------------------------------------------------------------------
-// Constructor
-//-------------------------------------------------------------------------------
-GribRecord::GribRecord ()
-{
-	ok = false;
-    data = nullptr;
-    BMSbits = nullptr;
-    boolBMStab = nullptr;
-	periodP1 = 0;
-	periodP2 = 0;
-	waveData = false;
-	verticalOrientationIsAmbiguous = false;
-}
-
-//-------------------------------------------------------------------------------
 // Lecture depuis un fichier
 //-------------------------------------------------------------------------------
-GribRecord::GribRecord (ZUFILE* file, int id_) : GribRecord()
+GribRecord::GribRecord (ZUFILE* file, int id_)
 {
     id = id_;
     seekStart = zu_tell(file);
@@ -449,8 +528,8 @@ GribRecord::GribRecord (ZUFILE* file, int id_) : GribRecord()
 	if (ok && hasBMS) { // replace the BMS bits table with a faster bool table
         boolBMStab = new bool [Ni*Nj];
 		assert (boolBMStab);
-		for (int i=0; i<Ni; i++) {
-			for (int j=0; j<Nj; j++) {
+        for (int j=0; j<Nj; j++) {
+		    for (int i=0; i<Ni; i++) {
 				boolBMStab [j*Ni+i] = hasValueInBitBMS (i,j);
 			}
 		}
@@ -473,18 +552,20 @@ GribRecord::GribRecord (ZUFILE* file, int id_) : GribRecord()
 //-------------------------------------------------------------------------------
 // Constructeur de recopie
 //-------------------------------------------------------------------------------
-GribRecord::GribRecord (const GribRecord &rec)
+GribRecord::GribRecord (const GribRecord &rec, bool copy)
 {
     *this = rec;
 	setDuplicated (true);
-    // recopie les champs de bits
-    if (rec.data != nullptr) {
+    if (rec.data != nullptr && copy) {
         int size = rec.Ni*rec.Nj;
-        this->data = new double[size];
-		assert (this->data);
-        for (int i=0; i<size; i++)
-            this->data[i] = rec.data[i];
+        auto ptr = new data_t[size];
+        for (int i=0; i<size; i++) {
+            ptr[i] = rec.data.get()[i];
+        }
+        this->data = std::shared_ptr<data_t>(ptr, std::default_delete<data_t[]>());
     }
+
+    // recopie les champs de bits
     if (rec.BMSbits != nullptr) {
         int size = rec.sectionSize3-6;
         this->BMSbits = new zuchar[size];
@@ -504,7 +585,6 @@ GribRecord::GribRecord (const GribRecord &rec)
 //--------------------------------------------------------------------------
 GribRecord::~GribRecord()
 {
-    delete [] data;
     delete [] BMSbits;
     delete [] boolBMStab;
 }
@@ -555,16 +635,16 @@ void  GribRecord::checkOrientation ()
 void GribRecord::reverseData (char orientation) // orientation = 'H' or 'V'
 {
 	int i, j, i1, j1, i2, j2;
-	double v;
+	data_t v;
 	bool b;
 	if (orientation == 'H') 
 	{
 		for (j=0; j<Nj; j++) {
 			for (i1=0,i2=Ni-1;  i1<i2;  i1++,i2--) // Reverse line j
 			{
-				v = data [j*Ni+i1];
-				data [j*Ni+i1] = data [j*Ni+i2];
-				data [j*Ni+i2] = v;
+				v = data.get() [j*Ni+i1];
+				data.get() [j*Ni+i1] = data.get() [j*Ni+i2];
+				data.get() [j*Ni+i2] = v;
 				if (boolBMStab) {
 					b = boolBMStab [j*Ni+i1];
 					boolBMStab [j*Ni+i1] = boolBMStab [j*Ni+i2];
@@ -578,9 +658,9 @@ void GribRecord::reverseData (char orientation) // orientation = 'H' or 'V'
 		for (i=0; i<Ni; i++) {
 			for (j1=0,j2=Nj-1;  j1<j2;  j1++,j2--) // Reverse row i
 			{
-				v = data [j1*Ni+i];
-				data [j1*Ni+i] = data [j2*Ni+i];
-				data [j2*Ni+i] = v;
+				v = data.get() [j1*Ni+i];
+				data.get() [j1*Ni+i] = data.get() [j2*Ni+i];
+				data.get() [j2*Ni+i] = v;
 				if (boolBMStab) {
 					b = boolBMStab [j1*Ni+i];
 					boolBMStab [j1*Ni+i] = boolBMStab [j2*Ni+i];
@@ -610,13 +690,14 @@ uint64_t GribRecord::makeKey(int dataType,int levelType,int levelValue)
     return (((static_cast<uint64_t>(dataType) << 16) | static_cast<uint64_t>(levelType)) << 32) | levelValue;
 }
 //-------------------------------------------------------------------------------
-void  GribRecord::multiplyAllData(double k)
+void  GribRecord::multiplyAllData(double val)
 {
+    data_t k = val;
 	for (int j=0; j<Nj; j++) {
 		for (int i=0; i<Ni; i++)
 		{
 			if (hasValue(i,j)) {
-				data[j*Ni+i] *= k;
+				data.get()[j*Ni+i] *= k;
 			}
 		}
 	}
@@ -656,12 +737,12 @@ void GribRecord::average(const GribRecord &rec)
     zuint size = Ni *Nj;
     double diff = d2 -d1;
     for (zuint i=0; i<size; i++) {
-        if (! GribDataIsDef(rec.data[i]))
+        if (! GribDataIsDef(rec.data.get()[i]))
            continue;
-        if (! GribDataIsDef(data[i]))
+        if (! GribDataIsDef(data.get()[i]))
            continue;
 
-        data[i] = (data[i]*d2 -rec.data[i]*d1)/diff;
+        data.get()[i] = (data.get()[i]*d2 -rec.data.get()[i]*d1)/diff;
     }
 }
 
@@ -680,20 +761,20 @@ void GribRecord::substract(const GribRecord &rec, bool pos)
 
     zuint size = Ni *Nj;
     for (zuint i=0; i<size; i++) {
-        if (rec.data[i] == GRIB_NOTDEF)
+        if (rec.data.get()[i] == GRIB_NOTDEF)
            continue;
-        if (! GribDataIsDef(data[i])) {
-            data[i] = -rec.data[i];
+        if (! GribDataIsDef(data.get()[i])) {
+            data.get()[i] = -rec.data.get()[i];
             // XXX BMSbits
             if (boolBMStab) {
                 boolBMStab [i] = true;
             }
         }
         else
-            data[i] -= rec.data[i];
-        if (data[i] < 0. && pos) {
+            data.get()[i] -= rec.data.get()[i];
+        if (pos && data.get()[i] < 0.) {
             // clamp data ...
-            data[i] = 0.;
+            data.get()[i] = 0.;
         }
     }
 }
@@ -943,7 +1024,8 @@ bool GribRecord::readGribSection4_BDS(ZUFILE* file) {
     }
 
     // Allocate memory for the data
-    data = new double[Ni*Nj];
+	auto ptr = new data_t[Ni*Nj];
+    data = std::shared_ptr<data_t>(ptr, std::default_delete<data_t[]>());
     if (!data) {
         erreur("Record %d: out of memory",id);
         ok = false;
@@ -982,11 +1064,11 @@ bool GribRecord::readGribSection4_BDS(ZUFILE* file) {
                 }
                 if (hasValueInBitBMS(i,j)) {
                     x = readPackedBits(buf, startbit, nbBitsInPack);
-                    data[ind] = (refValue + x*scaleFactorEpow2)/decimalFactorD;
+                    data.get()[ind] = (refValue + x*scaleFactorEpow2)/decimalFactorD;
                     startbit += nbBitsInPack;
                 }
                 else {
-                    data[ind] = GRIB_NOTDEF;
+                    data.get()[ind] = GRIB_NOTDEF;
                 }
             }
         }
@@ -1003,10 +1085,10 @@ bool GribRecord::readGribSection4_BDS(ZUFILE* file) {
                 if (hasValueInBitBMS(i,j)) {
                     x = readPackedBits(buf, startbit, nbBitsInPack);
                     startbit += nbBitsInPack;
-                    data[ind] = (refValue + x*scaleFactorEpow2)/decimalFactorD;
+                    data.get()[ind] = (refValue + x*scaleFactorEpow2)/decimalFactorD;
                 }
                 else {
-                    data[ind] = GRIB_NOTDEF;
+                    data.get()[ind] = GRIB_NOTDEF;
                 }
             }
         }
@@ -1209,7 +1291,7 @@ zuint GribRecord::periodSeconds(zuchar unit,zuchar P1,zuchar P2,zuchar range) {
 
 
 //===============================================================================================
-double GribRecord::getInterpolatedValue (double px, double py, bool interpolate) const
+data_t GribRecord::getInterpolatedValue (double px, double py, bool interpolate) const
 {
     double val; 
 	double eps = 1e-4;
@@ -1254,6 +1336,8 @@ double GribRecord::getInterpolatedValue (double px, double py, bool interpolate)
 		}
     } 
     else {
+        if (px < xmin)
+            px += 360.;
 		pi = (px-xmin)/Di;
 		i0 = (int) floor(pi);  // point 00
 		i1 = i0+1;
@@ -1384,23 +1468,21 @@ double GribRecord::getInterpolatedValue (double px, double py, bool interpolate)
     return val;
 }
 //--------------------------------------------------------------------------
-double GribRecord::getValueOnRegularGrid (DataCode dtc, int i, int j ) const
+data_t GribRecord::getValueOnRegularGrid (DataCode dtc, int i, int j ) const
 {
 	if ( getDataCode() != dtc )
 		return GRIB_NOTDEF;
-	else
-		return getValue (i,j);
+    return getValue (i,j);
 }
 //--------------------------------------------------------------------------
-double  GribRecord::getInterpolatedValue (
+data_t  GribRecord::getInterpolatedValue (
 						DataCode dtc,
 						double px, double py,
 						bool interpolate) const 
 {
 	if ( getDataCode() != dtc )
 		return GRIB_NOTDEF;
-	else
-		return getInterpolatedValueUsingRegularGrid (dtc,px,py,interpolate);
+    return getInterpolatedValueUsingRegularGrid (dtc,px,py,interpolate);
 }
 
 

@@ -24,6 +24,8 @@ QString DataCodeStr::toString (const DataCenterModel &dcm)
 	switch (dcm) {
         case NOAA_GFS :
             return "NOAA-GFS";
+        case NOAA_GFS_ENSEMBLE :
+            return "NOAA-GFS-ENSEMBLE";
         case NOAA_NAM :
             return "NOAA-NAM";
         case NOAA_NCEP_WW3 :
@@ -46,12 +48,16 @@ QString DataCodeStr::toString (const DataCenterModel &dcm)
             return "ECMWF";
         case ECMWF_WAVE :
             return "ECMWF-WAVE";
+        case ECMWF_ERA5:
+            return "ECMWF-ERA5";
         case DWD_ICON_GLOBAL :
             return "DWD-ICON-Global";
         case DWD_GWAM :
             return "DWD-GWAM";
         case DWD_EWAM :
             return "DWD-EWAM";
+        case MF_WAM :
+            return "MF-WAM";
         case MF_ARPEGE_GLOBAL :
             return "Arpege-Global";
         case MF_ARPEGE_EU :
@@ -190,8 +196,10 @@ QString DataCodeStr::toString_name (const DataCode &dtc)
 		case GRB_TMAX         : return tr("Temperature max");
 		case GRB_TMIN         : return tr("Temperature min");
 		case GRB_DEWPOINT     : return tr("Dew point");
-		case GRB_CUR_VX      : return tr("Current (Vx)");
-		case GRB_CUR_VY      : return tr("Current (Vy)");
+		case GRB_CUR_VX       : return tr("Current (Vx)");
+		case GRB_CUR_VY       : return tr("Current (Vy)");
+		case GRB_CUR_DIR      : return tr("Current (direction)");
+		case GRB_CUR_SPEED    : return tr("Current (speed)");
 		case GRB_WIND_VX      : return tr("Wind (Vx)");
 		case GRB_WIND_VY      : return tr("Wind (Vy)");
 		case GRB_WIND_DIR     : return tr("Wind (direction)");
@@ -216,13 +224,18 @@ QString DataCodeStr::toString_name (const DataCode &dtc)
 		case GRB_PRV_WIND_JET     : return tr("Wind (jet stream)");
 		case GRB_PRV_DIFF_TEMPDEW : return tr("Gap temperature-dew point");
 		case GRB_PRV_THETA_E      : return tr("Theta-e");
-		case GRB_WIND_GUST    : return tr("Wind gust");
+        case GRB_WIND_GUST    :
+            if (Util::getSetting("useAbsoluteGustSpeed", true).toBool())
+                return tr("Absolute wind gust");
+			return tr("Relative wind gust");
 		case GRB_WIND_GUST_VX : return tr("Wind gust (Vx)");
 		case GRB_WIND_GUST_VY : return tr("Wind gust (VY)");
 		case GRB_PRV_CUR_DIR    : return tr("Current direction");
 		case GRB_PRV_CUR_XY2D   : return tr("Current");
 		
-		case GRB_WAV_SIG_HT	   : return tr("Significant wave");
+		case GRB_WAV_SIG_HT	   : return tr("Significant wave height");
+		case GRB_WAV_DIR       : return tr("Combined wind waves and swell direction");
+		case GRB_WAV_PER       : return tr("Combined wind waves and swell mean period");
 		case GRB_WAV_WND_DIR   : return tr("Wind wave direction");
 		case GRB_WAV_WND_HT    : return tr("Wind wave height");
 		case GRB_WAV_WND_PER   : return tr("Wind wave period");
@@ -238,7 +251,7 @@ QString DataCodeStr::toString_name (const DataCode &dtc)
 		case GRB_WAV_MAX_PER   : return tr("Maximum wave period");
 		case GRB_WAV_WHITCAP_PROB  : return tr("Whitecap probability");
 		
-		case GRB_PRV_WAV_SIG   : return tr("Significant wave");
+		case GRB_PRV_WAV_SIG   : return tr("Wind waves and swell");
 		case GRB_PRV_WAV_MAX   : return tr("Maximum wave");
 		case GRB_PRV_WAV_SWL   : return tr("Swell");
 		case GRB_PRV_WAV_WND   : return tr("Wind wave");

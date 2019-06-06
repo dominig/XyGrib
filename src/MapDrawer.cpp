@@ -330,18 +330,12 @@ void MapDrawer::draw_GSHHS_and_GriddedData (
 //===================================================================
 void MapDrawer::addUsedDataCenterModel (const DataCode &dtc, GriddedPlotter *plotter)
 {
-	int type;
-	if (dtc.dataType == GRB_PRV_WIND_XY2D)
-		type = GRB_WIND_VX;
-	else if (dtc.dataType == GRB_PRV_CUR_XY2D)
-		type = GRB_CUR_VX;
-	else if (dtc.dataType == GRB_PRV_DIFF_TEMPDEW)
-		type = GRB_DEWPOINT;
-	else
-		type = dtc.dataType;
+	auto reader = plotter->getReader();
+	assert(reader != nullptr);
 
-	assert(plotter->getReader() != nullptr);
-	GriddedRecord *rec = plotter->getReader()->getRecord 
+	int type = reader->getDataTypeAlias(dtc.dataType);
+
+	GriddedRecord *rec = reader->getRecord
 			(DataCode(type,dtc.levelType,dtc.levelValue),  plotter->getCurrentDate());
 	if (rec != nullptr) {
 		setUsedDataCenters.insert (rec->getDataCenterModel());
@@ -379,8 +373,36 @@ void MapDrawer::draw_MeteoData_Gridded
 		else if (plotter->hasData (DataCode(GRB_PRV_WIND_XY2D,LV_GND_SURF,0))) {
 			windArrowsAltitude = Altitude (LV_GND_SURF,0);
 		}
+		else if (plotter->hasData (DataCode(GRB_WIND_SPEED,LV_ABOV_GND,10))
+		 && plotter->hasData (DataCode(GRB_WIND_DIR,LV_ABOV_GND,10)) )
+		{
+			windArrowsAltitude = Altitude (LV_ABOV_GND,10);
+		}
 		else {
 			hasWindForArrows = false;
+		}
+	}
+	if (showWaveArrowsType != GRB_TYPE_NOT_DEFINED) {
+		hasWaveForArrows = false;
+		switch (showWaveArrowsType) {
+		case GRB_PRV_WAV_SIG:
+			hasWaveForArrows = plotter->hasData(DataCode(GRB_WAV_DIR,LV_GND_SURF,0));
+			break;
+		case GRB_PRV_WAV_PRIM:
+			hasWaveForArrows = plotter->hasData(DataCode(GRB_WAV_DIR,LV_GND_SURF,0));
+			break;
+		case GRB_PRV_WAV_SCDY:
+			hasWaveForArrows = plotter->hasData(DataCode(GRB_WAV_SCDY_DIR,LV_GND_SURF,0));
+			break;
+		case GRB_PRV_WAV_MAX:
+			hasWaveForArrows = plotter->hasData(DataCode(GRB_WAV_MAX_DIR,LV_GND_SURF,0));
+			break;
+		case GRB_PRV_WAV_SWL:
+			hasWaveForArrows = plotter->hasData(DataCode(GRB_WAV_SWL_DIR,LV_GND_SURF,0));
+			break;
+		case GRB_PRV_WAV_WND:
+			hasWaveForArrows = plotter->hasData(DataCode(GRB_WAV_WND_DIR,LV_GND_SURF,0));
+			break;
 		}
 	}
 
@@ -401,6 +423,11 @@ void MapDrawer::draw_MeteoData_Gridded
             colorMapData.levelType = LV_BLW_SURF;
             colorMapData.levelValue = 3;
         }
+		else if (plotter->hasData (DataCode(GRB_CUR_SPEED, LV_GND_SURF,0))
+		 && plotter->hasData (DataCode(GRB_CUR_DIR, LV_GND_SURF,0)) )
+		{
+			currentArrowsAltitude = Altitude (LV_GND_SURF,0);
+		}
         else {
 			hasCurrentForArrows = false;
 		}
@@ -517,7 +544,7 @@ void MapDrawer::draw_MeteoData_Gridded
         plotter->draw_listIsolines (listLinesThetaE, pnt,proj);
 	}
 
-	if (showWaveArrowsType != GRB_TYPE_NOT_DEFINED) {
+	if (showWaveArrowsType != GRB_TYPE_NOT_DEFINED && hasWaveForArrows) {
 		plotter->draw_WAVES_Arrows (showWaveArrowsType, pnt, proj);
 	}
 	
@@ -609,11 +636,8 @@ void MapDrawer::draw_Cartouche_Gridded
 	//------------------------------------------
 	QString origine, duplicated;
 	DataCode dtmp = colorMapData;
-	if (dtmp.dataType==GRB_PRV_WIND_XY2D || dtmp.dataType==GRB_PRV_WIND_JET)
-			dtmp.dataType = GRB_WIND_VX;
-	else if (dtmp.dataType == GRB_PRV_CUR_XY2D)
-			dtmp.dataType = GRB_CUR_VX;
-	
+	dtmp.dataType = reader->getDataTypeAlias(dtmp.dataType);
+
 	GriddedRecord *rec = reader->getRecord (dtmp, plotter->getCurrentDate());
 	if (rec != nullptr) {
 		origine = DataCodeStr::toString (rec->getDataCenterModel());
@@ -671,7 +695,28 @@ void MapDrawer::draw_Cartouche_Gridded
 					+" ("+AltitudeStr::toStringShort(windArrowsAltitude)+")");
 		if (showCurrentArrows && hasCurrentForArrows)
 			datalist.append (tr("Current arrows"));
-		
+		if (showWaveArrowsType != GRB_TYPE_NOT_DEFINED && hasWaveForArrows) {
+			switch (showWaveArrowsType) {
+			case GRB_PRV_WAV_SIG:
+				datalist.append (tr("Combined wind and swell wave arrows"));
+				break;
+			case GRB_PRV_WAV_PRIM:
+				datalist.append (tr("Primary wave arrows"));
+				break;
+			case GRB_PRV_WAV_SCDY:
+				datalist.append (tr("Secondary wave arrows"));
+				break;
+			case GRB_PRV_WAV_MAX:
+				datalist.append (tr("Maximum wave arrows"));
+				break;
+			case GRB_PRV_WAV_SWL:
+				datalist.append (tr("Swell arrows"));
+				break;
+			case GRB_PRV_WAV_WND:
+				datalist.append (tr("Wind wave arrows"));
+				break;
+			}
+		}
         int dy, w, h, x, y, w1, w2;
 		QColor   transpcolor(255,255,255,180);
 		QColor   textcolor(20,20,20,255);

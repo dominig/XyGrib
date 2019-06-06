@@ -28,17 +28,15 @@ Grib2Reader::~Grib2Reader ()
 {
 }
 //-------------------------------------------------------------------------------
-void Grib2Reader::openFile (const std::string &fname,
-							LongTaskProgress *taskProgress, int nbrecs)
+void Grib2Reader::openFile (const QString &fname, int nbrecs)
 {
 	allUnknownRecords.clear();
-	this->taskProgress = taskProgress;
-	taskProgress->continueDownload = true;
+	continueDownload = true;
 	setAllDataCenterModel.clear();
 	setAllDates.clear ();
 	setAllDataCode.clear ();
 	
-    if (!fname.empty()) {
+    if (!fname.isEmpty()) {
         openFilePriv (fname, nbrecs);
 		createListDates ();
 		ok = getNumberOfDates() > 0;
@@ -53,7 +51,7 @@ void Grib2Reader::openFile (const std::string &fname,
     }
 }
 //-------------------------------------------------------------------------------
-void Grib2Reader::openFilePriv (const std::string& fname, int nbrecs)
+void Grib2Reader::openFilePriv (const QString& fname, int nbrecs)
 {
 //     debug("Open file: %s", fname.c_str());
     fileName = fname;
@@ -62,17 +60,15 @@ void Grib2Reader::openFilePriv (const std::string& fname, int nbrecs)
     //--------------------------------------------------------
     // Ouverture du fichier
     //--------------------------------------------------------
-    file = zu_open (fname.c_str(), "rb", ZU_COMPRESS_AUTO);
+    file = zu_open (qPrintable(fname), "rb", ZU_COMPRESS_AUTO);
     if (file == nullptr) {
-        erreur("Can't open file: %s", fname.c_str());
+        erreur("Can't open file: %s", qPrintable(fname));
         return;
     }
-	taskProgress->setMessage (LTASK_OPEN_FILE);
-	taskProgress->setValue (0);
+	emit newMessage (LongTaskMessage::LTASK_OPEN_FILE);
 	//DBG("nbrecs=%d", nbrecs);
     if (nbrecs > 0) {
-		taskProgress->setMessage (LTASK_PREPARE_MAPS);
-		taskProgress->setValue (0);
+		emit newMessage (LongTaskMessage::LTASK_PREPARE_MAPS);
 		readGrib2FileContent (nbrecs);
 	}
 	else {
@@ -127,10 +123,10 @@ void Grib2Reader::readGrib2FileContent (int nbrecs)
     gribfield  *gfld;
     g2int expand=1;
 	int idrec=0;
-    while (ierr==0 && taskProgress->continueDownload) {
-		qApp->processEvents ();
+    while (ierr==0 && continueDownload) {
+		//qApp->processEvents ();
 		seekgb_zu (file, iseek, 64*1024, &lskip, &lgrib);
-		taskProgress->setValue ((int)(100.0*idrec/nbrecs));
+		emit valueChanged ((int)(100.0*idrec/nbrecs));
         //DBG("READ FIELD : idrec=%d lskip=%ld lgrib=%ld", idrec, lskip, lgrib);
 		if (lgrib == 0)
 			break;    // end loop at EOF or problem
@@ -195,11 +191,16 @@ void Grib2Reader::analyseRecords ()
 	// Make a speed wind gust record from a vx and a vy records
 	// TODO : display also gust direction
 	Altitude alt (LV_ABOV_GND, 10);
+	if (hasData(DataCode(GRB_WIND_GUST, alt)))
+		return;
+
 	DataCode dtcx (GRB_WIND_GUST_VX, alt);
 	DataCode dtcy (GRB_WIND_GUST_VY, alt);
-	if (hasData(dtcx) && ! hasData(DataCode(GRB_WIND_GUST, alt))) {
-		for (long date : setAllDates)
-		{
+	if (!hasData(dtcx) || !hasData(dtcy))
+		return;
+
+	for (long date : setAllDates)
+	{
             GribRecord *recx = getRecord (dtcx, date);
 			GribRecord *recy = getRecord (dtcy, date);
 			if (recx && recy) {
@@ -223,7 +224,6 @@ void Grib2Reader::analyseRecords ()
 				storeRecordInMap (recGust);
 				//recGust->print("recGust");
 			}
-		}
 	}
 }
 

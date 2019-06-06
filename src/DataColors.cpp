@@ -27,6 +27,7 @@ DataColors::DataColors ()
 	function_getColor = &DataColors::getWindColor;	// why not
 	
  	colors_Wind.readFile (Util::pathColors()+"colors_wind_kts.txt", 1.852/3.6, 0);
+ 	colors_Gust.readFile (Util::pathColors()+"colors_gust_kts.txt", 1.852/3.6, 0);
 	colors_Wind_Jet.readFile (Util::pathColors()+"colors_wind_jet_kts.txt", 1.852/3.6, 0);
 	colors_Current.readFile (Util::pathColors()+"colors_current_kts.txt", 1.852/3.6, 0);
 	colors_Temp.readFile (Util::pathColors()+"colors_temp_celcius.txt", 1, 273.15);
@@ -65,6 +66,10 @@ QColor DataColors::getContrastedColor (const QColor &base)
 QRgb DataColors::getWindColor (double v, bool smooth)  {
 	return colors_Wind.getColor (v, smooth);
 }	
+//--------------------------------------------------------------------------
+QRgb DataColors::getGustColor (double v, bool smooth)  {
+	return colors_Gust.getColor (v, smooth);
+}
 //--------------------------------------------------------------------------
 QRgb DataColors::getWindJetColor (double v, bool smooth)  {
 	return colors_Wind_Jet.getColor (v, smooth);
@@ -189,123 +194,56 @@ QRgb  DataColors::pasteToWindColorScale
 	return getWindColor (Util::BeaufortToMs_F(eqbeauf), smooth);
 }
 //--------------------------------------------------------------------------
-void DataColors::setColorDataTypeFunction (const DataCode &dtc)
+auto DataColors::getFunctionColor(const DataCode &dtc) -> QRgb (DataColors::*)(double v, bool smooth)
 {
 	switch (dtc.dataType) {
+		case GRB_WIND_GUST : return &DataColors::getGustColor;
+		case GRB_WIND_SPEED :
 		case GRB_PRV_WIND_XY2D :
-			function_getColor = &DataColors::getWindColor;
-			break;
-		case GRB_PRV_WIND_JET :
-			function_getColor = &DataColors::getWindJetColor;
-			break;
-		case GRB_PRV_THETA_E :
-			function_getColor = &DataColors::getThetaEColor;
-			break;
+			return &DataColors::getWindColor;
+		case GRB_PRV_WIND_JET : return  &DataColors::getWindJetColor;
+		case GRB_PRV_THETA_E :  return &DataColors::getThetaEColor;
+		case GRB_CUR_SPEED :
 		case GRB_PRV_CUR_XY2D :
-			function_getColor = &DataColors::getCurrentColor;
-			break;
-		case GRB_PRV_DIFF_TEMPDEW :
-			function_getColor = &DataColors::getDeltaTemperaturesColor;
-			break;
-		case GRB_CLOUD_TOT : 
-			function_getColor = &DataColors::getCloudColor;
-			break;
+			return &DataColors::getCurrentColor;
+		case GRB_PRV_DIFF_TEMPDEW : return  &DataColors::getDeltaTemperaturesColor;
+		case GRB_CLOUD_TOT :        return &DataColors::getCloudColor;
 		case GRB_PRECIP_TOT :
         case GRB_PRECIP_RATE  :
-            function_getColor = &DataColors::getRainColor;
-			break;
-		case GRB_HUMID_REL :
-			function_getColor = &DataColors::getHumidColor;
-			break;
-		case GRB_TEMP :
-			function_getColor = &DataColors::getTemperatureColor;
-			break;
-		case GRB_TEMP_POT :
-			function_getColor = &DataColors::getTemperatureColor;
-			break;
-		case GRB_DEWPOINT :
-			function_getColor = &DataColors::getTemperatureColor;
-			break;
-		case GRB_SNOW_DEPTH :
-			function_getColor = &DataColors::getSnowDepthColor;
-			break;
-		case GRB_SNOW_CATEG :
-			function_getColor = &DataColors::getBinaryColor;
-			break;
-		case GRB_FRZRAIN_CATEG :
-			function_getColor = &DataColors::getBinaryColor;
-			break;
-		case GRB_CAPE :
-			function_getColor = &DataColors::getCAPEColor;
-			break;
-		case GRB_CIN :
-			function_getColor = &DataColors::getCINColor;
-			break;
-        // added by david
-        case GRB_COMP_REFL :
-            function_getColor = &DataColors::getReflectColor;
-            break;
+            return &DataColors::getRainColor;
+		case GRB_HUMID_REL :     return &DataColors::getHumidColor;
+		case GRB_TEMP :          return &DataColors::getTemperatureColor;
+		case GRB_TEMP_POT :      return &DataColors::getTemperatureColor;
+		case GRB_DEWPOINT :      return &DataColors::getTemperatureColor;
+		case GRB_SNOW_DEPTH :    return &DataColors::getSnowDepthColor;
+		case GRB_SNOW_CATEG :    return &DataColors::getBinaryColor;
+		case GRB_FRZRAIN_CATEG : return &DataColors::getBinaryColor;
+		case GRB_CAPE :          return &DataColors::getCAPEColor;
+		case GRB_CIN :           return &DataColors::getCINColor;
+        case GRB_COMP_REFL :     return &DataColors::getReflectColor;
 		case GRB_WAV_SIG_HT :
 		case GRB_WAV_MAX_HT :
-			function_getColor = &DataColors::getWaveHeightColor;
-			break;
-		case GRB_WAV_WHITCAP_PROB :
-			function_getColor = &DataColors::getWhiteCapColor;
+			return &DataColors::getWaveHeightColor;
+		case GRB_WAV_WHITCAP_PROB : return &DataColors::getWhiteCapColor;
 			break;
 		default :
-			function_getColor = &DataColors::getWindColor;	// why not
 			break;
 	}
+	return &DataColors::getWindColor;	// why not
+}
+
+//--------------------------------------------------------------------------
+void DataColors::setColorDataTypeFunction (const DataCode &dtc)
+{
+	function_getColor = getFunctionColor(dtc);
 }
  
 //--------------------------------------------------------------------------
 QRgb DataColors::getDataCodeColor (const DataCode &dtc, double v, bool smooth)
 {
-	switch (dtc.dataType) {
-		case GRB_PRV_WIND_XY2D :
-			return DataColors::getWindColor (v, smooth);
-		case GRB_PRV_WIND_JET :
-			return DataColors::getWindJetColor (v, smooth);
-		case GRB_PRV_THETA_E :
-			return DataColors::getThetaEColor (v, smooth);
-		case GRB_PRV_CUR_XY2D :
-			return DataColors::getCurrentColor (v, smooth);
-		case GRB_PRV_DIFF_TEMPDEW :
-			return DataColors::getDeltaTemperaturesColor (v, smooth);
-		case GRB_CLOUD_TOT : 
-			return DataColors::getCloudColor (v, smooth);
-		case GRB_PRECIP_TOT :
-        case GRB_PRECIP_RATE  :
-            return DataColors::getRainColor (v, smooth);
-		case GRB_HUMID_REL :
-			return DataColors::getHumidColor (v, smooth);
-		case GRB_TEMP :
-			return DataColors::getTemperatureColor (v, smooth);
-		case GRB_TEMP_POT :
-			return DataColors::getTemperatureColor (v, smooth);
-		case GRB_DEWPOINT :
-			return DataColors::getTemperatureColor (v, smooth);
-		case GRB_SNOW_DEPTH :
-			return DataColors::getSnowDepthColor (v, smooth);
-		case GRB_SNOW_CATEG :
-			return DataColors::getBinaryColor (v, smooth);
-		case GRB_FRZRAIN_CATEG :
-			return DataColors::getBinaryColor (v, smooth);
-		case GRB_CAPE :
-			return DataColors::getCAPEColor (v, smooth);
-		case GRB_CIN :
-			return DataColors::getCINColor (v, smooth);
-        // added by david
-        case GRB_COMP_REFL :
-            return DataColors::getReflectColor (v, smooth);
-		case GRB_WAV_SIG_HT :
-		case GRB_WAV_MAX_HT :
-			return DataColors::getWaveHeightColor (v, smooth);
-		case GRB_WAV_WHITCAP_PROB :
-			return DataColors::getWhiteCapColor (v, smooth);
-		default :
-			return DataColors::getWindColor (v, smooth);	// why not
-	}
+	QRgb (DataColors::*fn) (double v, bool smooth);
+	fn = getFunctionColor(dtc);
+	return (this->*fn)(v, smooth);
 }
 
 //--------------------------------------------------------------------------
@@ -313,12 +251,16 @@ ColorScale *DataColors::getColorScale (const DataCode &dtc)
 {
 // 	DBGQS(DataCodeStr::toString(dtc));
 	switch (dtc.dataType) {
+		case GRB_WIND_GUST :
+			return &colors_Gust;
+		case GRB_WIND_SPEED :
 		case GRB_PRV_WIND_XY2D :
 			return &colors_Wind;
 		case GRB_PRV_WIND_JET :
 			return &colors_Wind_Jet;
 		case GRB_PRV_THETA_E :
 			return &colors_ThetaE;
+		case GRB_CUR_SPEED :
 		case GRB_PRV_CUR_XY2D :
 			 return &colors_Current;
 		case GRB_PRV_DIFF_TEMPDEW :
@@ -362,12 +304,3 @@ ColorScale *DataColors::getColorScale (const DataCode &dtc)
 			return &colors_Wind;
 	}
 }
-
-					
-
-
-
-
-
-
-

@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
 #include <unistd.h>
-#include <time.h>
+#include <ctime>
 
 #include <QDir>
 #include <QStandardPaths>
@@ -357,6 +357,7 @@ QString Util::getDataUnit (const DataCode &dtc)
 		case GRB_PRV_DIFF_TEMPDEW : 
 		case GRB_PRV_THETA_E      : 
 			return Util::getSetting("unitsTemp", tr("°C")).toString();
+		case GRB_WIND_GUST  :
 		case GRB_WIND_VX    : 
 		case GRB_WIND_VY    : 
 		case GRB_WIND_SPEED : 
@@ -365,6 +366,7 @@ QString Util::getDataUnit (const DataCode &dtc)
 			return Util::getSetting("unitsWindSpeed", tr("km/h")).toString();
 		case GRB_CUR_VX      : 
 		case GRB_CUR_VY      : 
+		case GRB_CUR_SPEED :
 		case GRB_PRV_CUR_XY2D    : 
 			return Util::getSetting("unitsCurrentSpeed", tr("kts")).toString();
 		case GRB_CAPE 		  : 
@@ -388,13 +390,16 @@ QString Util::getDataUnit (const DataCode &dtc)
 		case GRB_WAV_SWL_HT : 
 		case GRB_WAV_MAX_HT : 
 			return tr("m");
+		case GRB_CUR_DIR :
 		case GRB_WIND_DIR : 
+		case GRB_WAV_DIR :
 		case GRB_WAV_WND_DIR : 
 		case GRB_WAV_SWL_DIR : 
 		case GRB_WAV_MAX_DIR : 
 		case GRB_WAV_PRIM_DIR : 
 		case GRB_WAV_SCDY_DIR : 
 			return tr("°");
+		case GRB_WAV_PER :
 		case GRB_WAV_WND_PER : 
 		case GRB_WAV_SWL_PER : 
 		case GRB_WAV_MAX_PER : 

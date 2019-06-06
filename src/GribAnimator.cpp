@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  
 #include <cmath>
 #include <cassert>
-#include <stdint.h>
+#include <cstdint>
 
 #include <QMessageBox>
 #include <QDir>
@@ -377,7 +377,8 @@ GribAnimator::~GribAnimator()
 //-------------------------------------------------------------------------------
 GribAnimator::GribAnimator (Terrain *terre)
 {
-	setModal(false); 
+	setModal(false);
+	setAttribute(Qt::WA_DeleteOnClose);
     setWindowTitle(tr("Animation"));
     setWindowIcon (QIcon (Util::pathImg("xyGrib_32.xpm")));
     if (Util::getSetting("showDarkSkin", true).toBool())

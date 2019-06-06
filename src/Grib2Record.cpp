@@ -19,15 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "Grib2Record.h"
 
 //----------------------------------------
-Grib2Record::Grib2Record ()
-{	
-}
-
-//----------------------------------------
-Grib2Record::~Grib2Record ()
-{	
-}
-//----------------------------------------
 // david added discipline
 Grib2Record::Grib2Record (gribfield  *gfld, int id, int idCenter, time_t refDate, int dscpl)
 {
@@ -122,8 +113,8 @@ Grib2Record::Grib2Record (gribfield  *gfld, int id, int idCenter, time_t refDate
 	// Data
 	//----------------------------------------
 	size_t size = Ni*Nj;
-	this->data = new double[size];
-	assert (this->data);
+	auto ptr = new data_t[size];
+    this->data = std::shared_ptr<data_t>(ptr, std::default_delete<data_t[]>());
 
     // Read data in the order given by isAdjacentI
     int i, j;
@@ -138,10 +129,10 @@ Grib2Record::Grib2Record (gribfield  *gfld, int id, int idCenter, time_t refDate
                     ind = j*Ni+i;
                 }
                 if (!hasBMS || gfld->bmap[ind]) {
-                    data[ind] = gfld->fld[indgfld];
+                    data.get()[ind] = gfld->fld[indgfld];
                 }
                 else {
-                    data[ind] = GRIB_NOTDEF;
+                    data.get()[ind] = GRIB_NOTDEF;
                 }
             }
         }
@@ -156,14 +147,16 @@ Grib2Record::Grib2Record (gribfield  *gfld, int id, int idCenter, time_t refDate
                     ind = j*Ni+i;
                 }
                 if (!hasBMS || gfld->bmap[ind]) {
-                    data[ind] = gfld->fld[indgfld];
+                    data.get()[ind] = gfld->fld[indgfld];
                 }
                 else {
-                    data[ind] = GRIB_NOTDEF;
+                    data.get()[ind] = GRIB_NOTDEF;
                 }
             }
         }
     }
+#if 0
+	// don't keep BMS around nothing is using it (GRIB_NOTDEF)
 	if (ok && hasBMS) { // replace the BMS bits table with a faster bool table
         boolBMStab = new bool [Ni*Nj];
 		assert (boolBMStab);
@@ -174,6 +167,7 @@ Grib2Record::Grib2Record (gribfield  *gfld, int id, int idCenter, time_t refDate
 			}
 		}
 	}
+#endif
 	//----------------------------------------
 	// end
 	//----------------------------------------
@@ -458,7 +452,19 @@ int Grib2Record::analyseProductType ()
                 return GRB_WAV_PRIM_DIR;
             if (paramnumber==11)
                 return GRB_WAV_PRIM_PER;
+            if (paramnumber==14)
+                return GRB_WAV_DIR;
+            if (paramnumber==15)
+                return GRB_WAV_PER;
+            if (paramnumber==23)
+                return GRB_WAV_MAX_PER; //Period of Maximum Individual Wave Height
+            if (paramnumber==24)
+                return GRB_WAV_MAX_HT; //Maximum Individual Wave Height
         } else if (paramcat==1){
+            if (paramnumber==0)
+                return GRB_CUR_DIR;
+            if (paramnumber==1)
+                return GRB_CUR_SPEED;
             if (paramnumber==2)
                 return GRB_CUR_VX;
             if (paramnumber==3)
@@ -467,7 +473,7 @@ int Grib2Record::analyseProductType ()
     }
 
 
-    if (pdtnum==0 || pdtnum== 2  || pdtnum== 12 ) {
+    else if (pdtnum==0 || pdtnum== 2  || pdtnum== 12 ) {
 		if (paramcat==0) {//TABLE 4.2-0-0
 			if (paramnumber==0)
 				return GRB_TEMP;

@@ -16,12 +16,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
+#include <QApplication>
 #include <QMessageBox>
 #include <QScrollBar>
 #include <cstdlib>
 #include <cmath>
 #include <cassert>
-#include <time.h>
+#include <ctime>
 
 #include "DialogSelectMetar.h"
 #include "Util.h"

@@ -67,6 +67,7 @@ public:
     void updateListeDates  (std::set<time_t> *setDates, time_t currentDate);
     void updateCurrentDate (time_t currentDate);
 
+    void updateDateSelector();
 
     time_t  getDateGribById (int id);
 
@@ -96,6 +97,7 @@ public:
     //------------------------------------------
     ZeroOneActionGroup *acView_GroupColorMap;
 		QAction *acView_WindColors;
+		QAction *acView_GustColors;
 		QAction *acView_CurrentColors;
 		QAction *acView_RainColors;
 		QAction *acView_CloudColors;
@@ -118,6 +120,7 @@ public:
 		QAction *acView_WhiteCapProb;
     QActionGroup *acView_GroupWavesArrows;
         QAction *acView_WavesArrows_none;
+        QAction *acView_WavesArrows_sig;
         QAction *acView_WavesArrows_max;
         QAction *acView_WavesArrows_swell;
         QAction *acView_WavesArrows_wind;
@@ -132,6 +135,8 @@ public:
 	QAction *acView_InterpolateValues;
 	QAction *acView_WindArrowsOnGribGrid;
 	QAction *acView_useJetSTreamColorMap;
+	QAction *acView_useAbsoluteGustSpeed;
+
 	QAction *acView_CurrentArrowsOnGribGrid;
 
     QAction *acView_WindArrow;

@@ -16,23 +16,27 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ***********************************************************************/
 
-#include <time.h>
+#include <ctime>
 
 #include "Util.h"
 #include "GriddedReader.h"
 
+int GriddedReader::getDataTypeAlias (int dataType) const
+{
+	if (dataType == GRB_PRV_WIND_XY2D || dataType==GRB_PRV_WIND_JET)
+		return GRB_WIND_VX;
+	if (dataType == GRB_PRV_CUR_XY2D)
+		return GRB_CUR_VX;
+	if (dataType == GRB_PRV_DIFF_TEMPDEW)
+		return GRB_DEWPOINT;
+
+	return dataType;
+}
+
 //------------------------------------------------------------
 bool GriddedReader::hasDataType (int dataType) const
 {
-	int type;
-	if (dataType == GRB_PRV_WIND_XY2D)
-		type = GRB_WIND_VX;
-	else if (dataType == GRB_PRV_CUR_XY2D)
-		type = GRB_CUR_VX;
-	else if (dataType == GRB_PRV_DIFF_TEMPDEW)
-		type = GRB_DEWPOINT;
-	else
-		type = dataType;
+	int type = getDataTypeAlias(dataType);
 	bool found = false;
 	std::set<DataCode> setdata = getAllDataCode ();
 	std::set<DataCode>::iterator it;
@@ -47,15 +51,8 @@ bool GriddedReader::hasDataType (int dataType) const
 //------------------------------------------------------------
 bool GriddedReader::hasData (const DataCode &dtc) const
 {
-	int type;
-	if (dtc.dataType == GRB_PRV_WIND_XY2D)
-		type = GRB_WIND_VX;
-	else if (dtc.dataType == GRB_PRV_CUR_XY2D)
-		type = GRB_CUR_VX;
-	else if (dtc.dataType == GRB_PRV_DIFF_TEMPDEW)
-		type = GRB_DEWPOINT;
-	else
-		type = dtc.dataType;
+	int type = getDataTypeAlias(dtc.dataType);
+
 	DataCode dtcsearch (type, dtc.getAltitude());
 	bool found = false;
 	std::set<DataCode> setdata = getAllDataCode ();
@@ -72,16 +69,12 @@ bool GriddedReader::hasData (const DataCode &dtc) const
 std::set<Altitude> GriddedReader::getAllAltitudes (int dataType) const
 {
 	//DBG("%d", dataType);
-	if (dataType == GRB_PRV_WIND_XY2D)
-			dataType = GRB_WIND_VX;
-	else if (dataType == GRB_PRV_CUR_XY2D)
-			dataType = GRB_CUR_VX;
-	else if (dataType == GRB_PRV_DIFF_TEMPDEW)
-			dataType = GRB_DEWPOINT;
+	int type = getDataTypeAlias(dataType);
+
 	std::set<Altitude> res;
 	std::set<DataCode> setdata = getAllDataCode ();
 	for (auto dtc : setdata) {
-			if (dtc.dataType == dataType)
+		if (dtc.dataType == type)
 			res.insert (dtc.getAltitude());
 	}
 	return res; 
@@ -129,7 +122,9 @@ bool GriddedReader::hasWaveDataType (int dataType)  const
 	bool ok = false;
 	switch (dataType) {
 		case GRB_PRV_WAV_SIG :
-			ok = hasDataType (GRB_WAV_SIG_HT);
+			ok = hasDataType (GRB_WAV_SIG_HT)
+			  || hasDataType (GRB_WAV_DIR)
+			  || hasDataType (GRB_WAV_PER);
 			break;
 		case GRB_PRV_WAV_MAX :
 			ok = hasDataType (GRB_WAV_MAX_DIR)
@@ -156,6 +151,8 @@ bool GriddedReader::hasWaveDataType (int dataType)  const
 			break;
 		case GRB_TYPE_NOT_DEFINED :
 			ok = hasDataType (GRB_WAV_SIG_HT)
+			  || hasDataType (GRB_WAV_DIR)
+			  || hasDataType (GRB_WAV_PER)
 			  || hasDataType (GRB_WAV_MAX_DIR)
 			  || hasDataType (GRB_WAV_MAX_HT)
 			  || hasDataType (GRB_WAV_MAX_PER)

@@ -385,7 +385,7 @@ void DialogLoadGRIB::updateParameters ()
         waveModel = cbWvModel->currentText();
 
     resolution = cbResolution->currentText().toDouble();
-    DBG("Resolution is: %d", resolution);
+//    DBG("Resolution is: %d", resolution);
     interval   = cbInterval->currentText().toInt();
     days       = cbDays->currentText().toInt();
     cycle      = cbRunCycle->currentData().toString();
@@ -410,8 +410,8 @@ void DialogLoadGRIB::updateParameters ()
     }
     if (fabs(ymin-ymax) < 2*resolution) {
         ym = (ymin+ymax)/2;
-        ymin = ym + 2*resolution;
-        ymax = ym - 2*resolution;
+        ymin = ym - 2*resolution;
+        ymax = ym + 2*resolution;
     }
 //    DBG("Dialog ymax etc after manipulations: %f,%f   %f,%f", xmin, ymin, xmax, ymax);
 
@@ -451,7 +451,6 @@ void DialogLoadGRIB::slotAtmModelSettings()
 
         cbResolution->clear();
         cbResolution->addItems(QStringList()<< "0.25"<< "0.5" << "1.0");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<< "1"<<"2"<<"3"<<"4"<<"5"<<"6"<<"7"<<"8"<<"9"<<"10");
         ind = Util::getSetting("downloadIndNbDays", 9).toInt();
@@ -508,7 +507,6 @@ void DialogLoadGRIB::slotAtmModelSettings()
     {
         cbResolution->clear();
         cbResolution->addItem("0.25");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<< "1"<<"2"<<"3"<<"4"<<"5"<<"6"<<"7"<<"8");
         ind = Util::getSetting("downloadIndNbDays", 7).toInt();
@@ -564,7 +562,6 @@ void DialogLoadGRIB::slotAtmModelSettings()
     {
         cbResolution->clear();
         cbResolution->addItem("0.5");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<< "1"<<"2"<<"3"<<"4");
         ind = Util::getSetting("downloadIndNbDays", 3).toInt();
@@ -620,7 +617,6 @@ void DialogLoadGRIB::slotAtmModelSettings()
     {
         cbResolution->clear();
         cbResolution->addItem("0.5");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<<"1"<<"2"<<"3"<<"4"<<"5"<<"6"<<"7"<<"8"<<"9"<<"10");
         ind = Util::getSetting("downloadIndNbDays", 9).toInt();
@@ -678,7 +674,6 @@ void DialogLoadGRIB::slotAtmModelSettings()
 
         cbResolution->clear();
         cbResolution->addItems(QStringList()<< "0.11");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<< "1"<<"2"<<"3"<<"4");
         ind = Util::getSetting("downloadIndNbDays", 3).toInt();
@@ -749,7 +744,6 @@ void DialogLoadGRIB::slotAtmModelSettings()
 
         cbResolution->clear();
         cbResolution->addItems(QStringList()<< "0.11");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<< "1"<<"2"<<"3"<<"4");
         ind = Util::getSetting("downloadIndNbDays", 3).toInt();
@@ -821,7 +815,6 @@ void DialogLoadGRIB::slotAtmModelSettings()
 
         cbResolution->clear();
         cbResolution->addItems(QStringList()<< "0.11");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<< "1"<<"2"<<"3"<<"4");
         ind = Util::getSetting("downloadIndNbDays", 3).toInt();
@@ -892,7 +885,6 @@ void DialogLoadGRIB::slotAtmModelSettings()
 
         cbResolution->clear();
         cbResolution->addItems(QStringList()<< "0.06");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<< "1"<<"2"<<"3"<<"4"<<"5");
         ind = Util::getSetting("downloadIndNbDays", 4).toInt();
@@ -964,9 +956,79 @@ void DialogLoadGRIB::slotAtmModelSettings()
 
         cbResolution->clear();
         cbResolution->addItems(QStringList()<< "0.1");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<< "1"<<"2"<<"3");
+        ind = Util::getSetting("downloadIndNbDays", 2).toInt();
+        ind = Util::inRange(ind, 0, cbDays->count()-1);
+        cbDays->setCurrentIndex(ind);
+        ind = 0;
+        cbInterval->clear();
+        cbInterval->addItems(QStringList()<<"1"<<"3"<<"6"<<"12");
+        cbInterval->setMinimumWidth (0);
+        ind = Util::getSetting("downloadIndInterval", 0).toInt();
+        if (ind == 24) ind = 1;
+        ind = Util::inRange(ind, 0, cbInterval->count()-1);
+        cbInterval->setCurrentIndex(ind);
+        ind = 0;
+        cbRunCycle->clear();
+        cbRunCycle->insertItem (ind++, tr("Last"), "last");
+        cbRunCycle->insertItem (ind++, tr("0 hr"), "00");
+        cbRunCycle->insertItem (ind++, tr("6 hr"), "06");
+        cbRunCycle->insertItem (ind++, tr("12 hr"), "12");
+        cbRunCycle->insertItem (ind++, tr("18 hr"), "18");
+
+        // reactivate parameters that may have been disabled
+        chkWind->setEnabled(true);
+        chkGUSTsfc->setEnabled(true);
+        chkPressure->setEnabled(true);
+        chkTemp->setEnabled(true);
+        chkCloud->setEnabled(true);
+        chkHumid->setEnabled(true);
+        chkRain->setEnabled(true);
+
+        chkAltitude200->setEnabled(true);
+        chkAltitude300->setEnabled(true);
+        chkAltitude400->setEnabled(true);
+        chkAltitude500->setEnabled(true);
+        chkAltitude600->setEnabled(true);
+        chkAltitude700->setEnabled(true);
+        chkAltitude850->setEnabled(true);
+        chkAltitude925->setEnabled(true);
+
+        chkAltitude_All->setEnabled(true);
+        chkAltitude_SkewT->setEnabled(true);
+
+        // deactivate unvalid parameters
+        chkSnowCateg->setEnabled(false); chkSnowCateg->setChecked(false);
+        chkFrzRainCateg->setEnabled(false); chkFrzRainCateg->setChecked(false);
+        chkIsotherm0->setEnabled(false); chkIsotherm0->setChecked(false);
+        chkCINsfc->setEnabled(false); chkCINsfc->setChecked(false);
+        chkReflectivity->setEnabled(false); chkReflectivity->setChecked(false);
+        chkSnowDepth->setEnabled(false); chkSnowDepth->setChecked(false);
+        chkCAPEsfc->setEnabled(false); chkCAPEsfc->setChecked(false);
+
+        chkAltitude200->setEnabled(false); chkAltitude200->setChecked(false);
+        chkAltitude300->setEnabled(false); chkAltitude300->setChecked(false);
+        chkAltitude400->setEnabled(false); chkAltitude400->setChecked(false);
+        chkAltitude500->setEnabled(false); chkAltitude500->setChecked(false);
+        chkAltitude600->setEnabled(false); chkAltitude600->setChecked(false);
+        chkAltitude700->setEnabled(false); chkAltitude700->setChecked(false);
+        chkAltitude850->setEnabled(false); chkAltitude850->setChecked(false);
+        chkAltitude925->setEnabled(false); chkAltitude925->setChecked(false);
+
+        chkAltitude_All->setEnabled(false); chkAltitude_All->setChecked(false);
+        chkAltitude_SkewT->setEnabled(false); chkAltitude_SkewT->setChecked(false);
+
+
+    }
+    else if (amod == "Arome 0.025°")
+    {
+        // set res, days, cyc options
+
+        cbResolution->clear();
+        cbResolution->addItems(QStringList()<< "0.025");
+        cbDays->clear();
+        cbDays->addItems(QStringList()<< "1"<<"2");
         ind = Util::getSetting("downloadIndNbDays", 2).toInt();
         ind = Util::inRange(ind, 0, cbDays->count()-1);
         cbDays->setCurrentIndex(ind);
@@ -1110,7 +1172,6 @@ void DialogLoadGRIB::setWaveSelectors ()
     {
         cbResolution->clear();
         cbResolution->addItem("0.25");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<< "1"<<"2"<<"3"<<"4"<<"5"<<"6"<<"7"<<"8");
         ind = Util::getSetting("downloadIndNbDays", 7).toInt();
@@ -1130,7 +1191,6 @@ void DialogLoadGRIB::setWaveSelectors ()
     {
         cbResolution->clear();
         cbResolution->addItem("0.05");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<< "1"<<"2"<<"3"<<"4");
         ind = Util::getSetting("downloadIndNbDays", 3).toInt();
@@ -1150,7 +1210,6 @@ void DialogLoadGRIB::setWaveSelectors ()
     {
         cbResolution->clear();
         cbResolution->addItem("0.5");
-        cbResolution->setMinimumWidth (60);
         cbDays->clear();
         cbDays->addItems(QStringList()<< "1"<<"2"<<"3"<<"4"<<"5"<<"6"<<"7"<<"8");
         ind = Util::getSetting("downloadIndNbDays", 7).toInt();
@@ -1452,7 +1511,7 @@ void DialogLoadGRIB::setZone (double x0, double y0, double x1, double y1)
 QFrame *DialogLoadGRIB::createFrameButtonsZone(QWidget *parent)
 {
     int ind, lig,col;
-    QFrame * ftmp, *ftmp2;
+    QFrame * ftmp;
     QFrame * frm = new QFrame(parent);
     assert(frm);
     QVBoxLayout  *lay = new QVBoxLayout(frm);
@@ -1493,8 +1552,10 @@ QFrame *DialogLoadGRIB::createFrameButtonsZone(QWidget *parent)
     cbModel = new QComboBox(this);
     assert(cbModel);
     cbModel->addItems(QStringList()<< tr("None") << "GFS"<< "ICON" << "Arpege" << "ECMWF"
-                                    << "NAM CONUS" << "NAM CACBN" << "NAM PACIFIC" << "ICON-EU" << "Arpege-EU" );
+                                    << "NAM CONUS" << "NAM CACBN" << "NAM PACIFIC" << "ICON-EU"
+                                    << "Arpege-EU" << "Arome 0.025°" );
     cbModel->setMinimumWidth (sizemin);
+    cbModel->setMaxVisibleItems(15);
     ind = Util::getSetting("downloadIndModel", 0).toInt();
     ind = Util::inRange(ind, 0, cbModel->count()-1);
     cbModel->setCurrentIndex(ind);
@@ -1514,9 +1575,9 @@ QFrame *DialogLoadGRIB::createFrameButtonsZone(QWidget *parent)
 	//------------------------------------------------
     cbResolution = new QComboBox(this);
     assert(cbResolution);
-    cbResolution->addItems(QStringList()<< "0.06" << "0.1" << "0.11" << "0.25" << "0.5" << "1.0");
-    //icon_eu_p10_, arpege_eu_p10_, nam..._, gfs_p25_, gfs_p50_, gfs_1p0_, icon_p25_, arpege_p50_
-    cbResolution->setMinimumWidth (50);
+    cbResolution->addItems(QStringList()<< "0.025" << "0.06" << "0.1" << "0.11" << "0.25" << "0.5" << "1.0");
+    //arome_025, icon_eu_p10_, arpege_eu_p10_, nam..._, gfs_p25_, gfs_p50_, gfs_1p0_, icon_p25_, arpege_p50_
+    cbResolution->setMinimumWidth (65);
 	ind = Util::getSetting("downloadIndResolution", 0).toInt();
 	ind = Util::inRange(ind, 0, cbResolution->count()-1);
     cbResolution->setCurrentIndex(ind);
