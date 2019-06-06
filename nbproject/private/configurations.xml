@@ -1,0 +1,458 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="100">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="." name="0">
+      <df name="cmake">
+      </df>
+      <df name="CMakeFiles">
+        <df name="3.10.2">
+          <df name="CompilerIdC">
+            <df name="tmp">
+            </df>
+            <in>CMakeCCompilerId.c</in>
+          </df>
+          <df name="CompilerIdCXX">
+            <df name="tmp">
+            </df>
+            <in>CMakeCXXCompilerId.cpp</in>
+          </df>
+        </df>
+        <df name="CMakeTmp">
+        </df>
+        <df name="include">
+          <in>Version.h</in>
+        </df>
+        <in>feature_tests.c</in>
+        <in>feature_tests.cxx</in>
+      </df>
+      <df name="data">
+        <df name="colors">
+        </df>
+        <df name="fonts">
+          <df name="liberation-fonts">
+          </df>
+        </df>
+        <df name="gis">
+        </df>
+        <df name="img">
+        </df>
+        <df name="maps">
+          <df name="gshhs">
+          </df>
+        </df>
+        <df name="tr">
+          <df name="CMakeFiles">
+            <df name="translations.dir">
+            </df>
+            <df name="translations_update.dir">
+            </df>
+          </df>
+        </df>
+      </df>
+      <df name="debian">
+        <df name="patches">
+        </df>
+        <df name="source">
+        </df>
+      </df>
+      <df name="linux_online_installer">
+        <df name="config">
+        </df>
+        <df name="packages">
+          <df name="org.opengribs.xygrib.core.linux">
+            <df name="data">
+              <df name="icons">
+              </df>
+            </df>
+            <df name="meta">
+            </df>
+          </df>
+          <df name="org.opengribs.xygrib.data">
+            <df name="meta">
+            </df>
+          </df>
+          <df name="org.opengribs.xygrib.maps">
+            <df name="meta">
+            </df>
+          </df>
+        </df>
+      </df>
+      <df name="mac-pkg">
+      </df>
+      <df name="mac_online_installer">
+        <df name="config">
+        </df>
+        <df name="icns">
+        </df>
+        <df name="packages">
+          <df name="org.opengribs.xygrib.core.mac">
+            <df name="meta">
+            </df>
+          </df>
+          <df name="org.opengribs.xygrib.data">
+            <df name="meta">
+            </df>
+          </df>
+          <df name="org.opengribs.xygrib.maps">
+            <df name="meta">
+            </df>
+          </df>
+        </df>
+      </df>
+      <df name="src">
+        <df name="CMakeFiles">
+          <df name="XyGrib.dir">
+          </df>
+        </df>
+        <df name="g2clib-1.6.0">
+          <df name="CMakeFiles">
+            <df name="g2clib.dir">
+            </df>
+          </df>
+          <in>comunpack.c</in>
+          <in>dec_jpeg2000.c</in>
+          <in>dec_png.c</in>
+          <in>drstemplates.c</in>
+          <in>drstemplates.h</in>
+          <in>g2_free.c</in>
+          <in>g2_getfld.c</in>
+          <in>g2_gribend.c</in>
+          <in>g2_info.c</in>
+          <in>g2_miss.c</in>
+          <in>g2_unpack1.c</in>
+          <in>g2_unpack2.c</in>
+          <in>g2_unpack3.c</in>
+          <in>g2_unpack4.c</in>
+          <in>g2_unpack5.c</in>
+          <in>g2_unpack6.c</in>
+          <in>g2_unpack7.c</in>
+          <in>gbits.c</in>
+          <in>getdim.c</in>
+          <in>getpoly.c</in>
+          <in>grib2.h</in>
+          <in>gridtemplates.c</in>
+          <in>gridtemplates.h</in>
+          <in>int_power.c</in>
+          <in>jpcunpack.c</in>
+          <in>jpeg2000_openjpeg.c</in>
+          <in>pdstemplates.c</in>
+          <in>pdstemplates.h</in>
+          <in>pngunpack.c</in>
+          <in>rdieee.c</in>
+          <in>seekgb.c</in>
+          <in>simunpack.c</in>
+          <in>specunpack.c</in>
+        </df>
+        <df name="GUI">
+          <df name="CMakeFiles">
+            <df name="gui.dir">
+            </df>
+          </df>
+          <in>AngleConverterDialog.cpp</in>
+          <in>AngleConverterDialog.h</in>
+          <in>AngleConverterWidget.cpp</in>
+          <in>AngleConverterWidget.h</in>
+          <in>ColorEditorWidget.cpp</in>
+          <in>ColorEditorWidget.h</in>
+          <in>LineEditorWidget.cpp</in>
+          <in>LineEditorWidget.h</in>
+          <in>PositionEditorWidget.cpp</in>
+          <in>PositionEditorWidget.h</in>
+          <in>TextStyleEditorWidget.cpp</in>
+          <in>TextStyleEditorWidget.h</in>
+          <in>moc_AngleConverterDialog.cpp</in>
+          <in>moc_AngleConverterWidget.cpp</in>
+          <in>moc_ColorEditorWidget.cpp</in>
+          <in>moc_LineEditorWidget.cpp</in>
+          <in>moc_PositionEditorWidget.cpp</in>
+          <in>moc_TextStyleEditorWidget.cpp</in>
+          <in>moc_ui_AngleConverterWidget.cpp</in>
+          <in>moc_ui_ColorEditorWidget.cpp</in>
+          <in>moc_ui_FindCityDialog.cpp</in>
+          <in>moc_ui_GraphicsParamsDialog.cpp</in>
+          <in>moc_ui_GribLoadDialog.cpp</in>
+          <in>moc_ui_LineEditorWidget.cpp</in>
+          <in>moc_ui_MeteotableOptionsDialog.cpp</in>
+          <in>moc_ui_PoiEditorDialog.cpp</in>
+          <in>moc_ui_PositionEditorWidget.cpp</in>
+          <in>moc_ui_TextStyleEditorWidget.cpp</in>
+          <in>ui_AngleConverterWidget.h</in>
+          <in>ui_ColorEditorWidget.h</in>
+          <in>ui_FindCityDialog.h</in>
+          <in>ui_GraphicsParamsDialog.h</in>
+          <in>ui_GribLoadDialog.h</in>
+          <in>ui_LineEditorWidget.h</in>
+          <in>ui_MeteotableOptionsDialog.h</in>
+          <in>ui_PoiEditorDialog.h</in>
+          <in>ui_PositionEditorWidget.h</in>
+          <in>ui_TextStyleEditorWidget.h</in>
+        </df>
+        <df name="map">
+          <df name="CMakeFiles">
+            <df name="map.dir">
+            </df>
+          </df>
+          <in>GisReader.cpp</in>
+          <in>GisReader.h</in>
+          <in>GshhsRangsReader.cpp</in>
+          <in>GshhsRangsReader.h</in>
+          <in>GshhsReader.cpp</in>
+          <in>GshhsReader.h</in>
+          <in>POI.cpp</in>
+          <in>POI.h</in>
+          <in>POI_Editor.cpp</in>
+          <in>POI_Editor.h</in>
+          <in>PositionEditor.cpp</in>
+          <in>PositionEditor.h</in>
+          <in>Projection.cpp</in>
+          <in>Projection.h</in>
+          <in>Projection_libproj.cpp</in>
+          <in>moc_GisReader.cpp</in>
+          <in>moc_GshhsRangsReader.cpp</in>
+          <in>moc_GshhsReader.cpp</in>
+          <in>moc_POI.cpp</in>
+          <in>moc_POI_Editor.cpp</in>
+          <in>moc_PositionEditor.cpp</in>
+          <in>moc_Projection.cpp</in>
+          <in>moc_Projection_libproj.cpp</in>
+        </df>
+        <df name="util">
+          <df name="CMakeFiles">
+            <df name="util.dir">
+            </df>
+          </df>
+          <in>Font.cpp</in>
+          <in>Font.h</in>
+          <in>Orthodromie.cpp</in>
+          <in>Orthodromie.h</in>
+          <in>Settings.cpp</in>
+          <in>Settings.h</in>
+          <in>SylkFile.h</in>
+          <in>Util.cpp</in>
+          <in>Util.h</in>
+          <in>moc_Font.cpp</in>
+          <in>moc_Orthodromie.cpp</in>
+          <in>moc_Settings.cpp</in>
+          <in>moc_SylkFile.cpp</in>
+          <in>moc_Util.cpp</in>
+          <in>moc_zuFile.cpp</in>
+          <in>zuFile.cpp</in>
+          <in>zuFile.h</in>
+        </df>
+        <in>Astro.cpp</in>
+        <in>Astro.h</in>
+        <in>BoardPanel.cpp</in>
+        <in>BoardPanel.h</in>
+        <in>ColorScale.cpp</in>
+        <in>ColorScale.h</in>
+        <in>ColorScaleWidget.cpp</in>
+        <in>ColorScaleWidget.h</in>
+        <in>DataColors.cpp</in>
+        <in>DataColors.h</in>
+        <in>DataDefines.h</in>
+        <in>DataMeteoAbstract.cpp</in>
+        <in>DataMeteoAbstract.h</in>
+        <in>DataPointInfo.cpp</in>
+        <in>DataPointInfo.h</in>
+        <in>DataQString.cpp</in>
+        <in>DataQString.h</in>
+        <in>DateChooser.cpp</in>
+        <in>DateChooser.h</in>
+        <in>DialogBoxBase.h</in>
+        <in>DialogBoxColumn.cpp</in>
+        <in>DialogBoxColumn.h</in>
+        <in>DialogFonts.cpp</in>
+        <in>DialogFonts.h</in>
+        <in>DialogGraphicsParams.cpp</in>
+        <in>DialogGraphicsParams.h</in>
+        <in>DialogLoadGRIB.cpp</in>
+        <in>DialogLoadGRIB.h</in>
+        <in>DialogProxy.cpp</in>
+        <in>DialogProxy.h</in>
+        <in>DialogSelectMetar.cpp</in>
+        <in>DialogSelectMetar.h</in>
+        <in>DialogServerStatus.cpp</in>
+        <in>DialogServerStatus.h</in>
+        <in>DialogUnits.cpp</in>
+        <in>DialogUnits.h</in>
+        <in>FileLoader.h</in>
+        <in>FileLoaderGRIB.cpp</in>
+        <in>FileLoaderGRIB.h</in>
+        <in>Grib2Plot.cpp</in>
+        <in>Grib2Plot.h</in>
+        <in>Grib2Reader.cpp</in>
+        <in>Grib2Reader.h</in>
+        <in>Grib2Record.cpp</in>
+        <in>Grib2Record.h</in>
+        <in>GribAnimator.cpp</in>
+        <in>GribAnimator.h</in>
+        <in>GribPlot.cpp</in>
+        <in>GribPlot.h</in>
+        <in>GribReader.cpp</in>
+        <in>GribReader.h</in>
+        <in>GribRecord.cpp</in>
+        <in>GribRecord.h</in>
+        <in>GriddedPlotter.cpp</in>
+        <in>GriddedPlotter.h</in>
+        <in>GriddedReader.cpp</in>
+        <in>GriddedReader.h</in>
+        <in>GriddedRecord.cpp</in>
+        <in>GriddedRecord.h</in>
+        <in>ImageWriter.cpp</in>
+        <in>ImageWriter.h</in>
+        <in>IrregularGridded.cpp</in>
+        <in>IrregularGridded.h</in>
+        <in>IsoLine.cpp</in>
+        <in>IsoLine.h</in>
+        <in>LonLatGrid.cpp</in>
+        <in>LonLatGrid.h</in>
+        <in>LongTaskProgress.cpp</in>
+        <in>LongTaskProgress.h</in>
+        <in>MainWindow.cpp</in>
+        <in>MainWindow.h</in>
+        <in>MapDrawer.cpp</in>
+        <in>MapDrawer.h</in>
+        <in>MenuBar.cpp</in>
+        <in>MenuBar.h</in>
+        <in>Metar.cpp</in>
+        <in>Metar.h</in>
+        <in>MeteoTable.cpp</in>
+        <in>MeteoTable.h</in>
+        <in>MeteoTableWidget.cpp</in>
+        <in>MeteoTableWidget.h</in>
+        <in>MeteotableOptionsDialog.cpp</in>
+        <in>MeteotableOptionsDialog.h</in>
+        <in>RegularGridded.h</in>
+        <in>SkewT.cpp</in>
+        <in>SkewT.h</in>
+        <in>SkewTWindow.cpp</in>
+        <in>Stylesheet.h</in>
+        <in>Terrain.cpp</in>
+        <in>Terrain.h</in>
+        <in>Therm.cpp</in>
+        <in>Therm.h</in>
+        <in>main.cpp</in>
+        <in>moc_Astro.cpp</in>
+        <in>moc_BoardPanel.cpp</in>
+        <in>moc_ColorScale.cpp</in>
+        <in>moc_ColorScaleWidget.cpp</in>
+        <in>moc_DataColors.cpp</in>
+        <in>moc_DataDefines.cpp</in>
+        <in>moc_DataMeteoAbstract.cpp</in>
+        <in>moc_DataPointInfo.cpp</in>
+        <in>moc_DataQString.cpp</in>
+        <in>moc_DateChooser.cpp</in>
+        <in>moc_DialogBoxBase.cpp</in>
+        <in>moc_DialogBoxColumn.cpp</in>
+        <in>moc_DialogFonts.cpp</in>
+        <in>moc_DialogGraphicsParams.cpp</in>
+        <in>moc_DialogLoadGRIB.cpp</in>
+        <in>moc_DialogProxy.cpp</in>
+        <in>moc_DialogSelectMetar.cpp</in>
+        <in>moc_DialogServerStatus.cpp</in>
+        <in>moc_DialogUnits.cpp</in>
+        <in>moc_FileLoader.cpp</in>
+        <in>moc_FileLoaderGRIB.cpp</in>
+        <in>moc_Grib2Plot.cpp</in>
+        <in>moc_Grib2Reader.cpp</in>
+        <in>moc_Grib2Record.cpp</in>
+        <in>moc_GribAnimator.cpp</in>
+        <in>moc_GribPlot.cpp</in>
+        <in>moc_GribReader.cpp</in>
+        <in>moc_GribRecord.cpp</in>
+        <in>moc_GriddedPlotter.cpp</in>
+        <in>moc_GriddedReader.cpp</in>
+        <in>moc_GriddedRecord.cpp</in>
+        <in>moc_ImageWriter.cpp</in>
+        <in>moc_IrregularGridded.cpp</in>
+        <in>moc_IsoLine.cpp</in>
+        <in>moc_LonLatGrid.cpp</in>
+        <in>moc_LongTaskProgress.cpp</in>
+        <in>moc_MainWindow.cpp</in>
+        <in>moc_MapDrawer.cpp</in>
+        <in>moc_MenuBar.cpp</in>
+        <in>moc_Metar.cpp</in>
+        <in>moc_MeteoTable.cpp</in>
+        <in>moc_MeteoTableWidget.cpp</in>
+        <in>moc_MeteotableOptionsDialog.cpp</in>
+        <in>moc_RegularGridded.cpp</in>
+        <in>moc_SkewT.cpp</in>
+        <in>moc_SkewTWindow.cpp</in>
+        <in>moc_Stylesheet.cpp</in>
+        <in>moc_Terrain.cpp</in>
+        <in>moc_Therm.cpp</in>
+        <in>moc_main.cpp</in>
+      </df>
+      <df name="win_online_installer">
+        <df name="config">
+        </df>
+        <df name="packages">
+          <df name="org.opengribs.xygrib.core.win">
+            <df name="data">
+              <df name="icons">
+              </df>
+            </df>
+            <df name="meta">
+            </df>
+          </df>
+          <df name="org.opengribs.xygrib.data">
+            <df name="meta">
+            </df>
+          </df>
+          <df name="org.opengribs.xygrib.maps">
+            <df name="meta">
+            </df>
+          </df>
+        </df>
+      </df>
+    </df>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir>.</rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+        </environment>
+      </runprofile>
+    </conf>
+  </confs>
+</configurationDescriptor>

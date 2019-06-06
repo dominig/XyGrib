@@ -2504,6 +2504,7 @@ void MainWindow::checkUpdates()
 //-----------------------------------------------------
 void MainWindow::slotCheckForUpdates()
 {
+  #ifndef NO_UPDATE // deactivates SW update if cmake -DCMAKE_CXX_FLAGS="-DNO_UPDATE=1"
     QObject::sender();
     QString page = "/getversion.php";
     QNetworkRequest request = Util::makeNetworkRequest("http://"+Util::getServerName()+page);
@@ -2512,7 +2513,7 @@ void MainWindow::slotCheckForUpdates()
                     this, SLOT(slotNetworkError (QNetworkReply::NetworkError)));
     connect (reply, SIGNAL(finished()),
              this, SLOT(slotFinished ()));
-
+  #endif
 }
 
 
@@ -2582,6 +2583,7 @@ QString MainWindow::getMTLocation()
 //-----------------------------------------------------
 void MainWindow::slotFinished()
 {
+  #ifndef NO_UPDATE // deactivates SW update if cmake -DCMAKE_CXX_FLAGS="-DNO_UPDATE=1"
     QByteArray data = reply->readAll ();
     QJsonDocument jsondoc = QJsonDocument::fromJson(data);
     QJsonObject jsondata = jsondoc.object();
@@ -2617,6 +2619,8 @@ void MainWindow::slotFinished()
                                      +tr("which is the most current version"));
 
     }
+  #endif
+
     startCheckUpdateFlag = false;
 }
 

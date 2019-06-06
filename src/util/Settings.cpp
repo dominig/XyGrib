@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <QStringList>
 #include <QMessageBox>
 #include <QMetaEnum>
-
+#include <QApplication>
 #include "Settings.h"
 #include "Util.h"
 
